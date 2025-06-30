@@ -1,0 +1,67 @@
+databases:
+  - name: goiterdb-dev
+    databaseName: goiterdb_dev
+    plan: free
+    region: oregon
+
+services:
+  # Backend service
+  - type: web
+    name: goiter-backend
+    env: go
+    region: oregon
+    plan: free
+    buildCommand: cd backend && go build -o main
+    startCommand: cd backend && ./main
+    envVars:
+      - key: DB_HOST
+        fromDatabase:
+          name: goiterdb-dev
+          property: host
+      - key: DB_PORT
+        fromDatabase:
+          name: goiterdb-dev
+          property: port
+      - key: DB_USER
+        fromDatabase:
+          name: goiterdb-dev
+          property: user
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: goiterdb-dev
+          property: password
+      - key: DB_NAME
+        fromDatabase:
+          name: goiterdb-dev
+          property: database
+      - key: DB_SSLMODE
+        value: require
+      - key: PORT
+        value: 8080
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: GOOGLE_CALLBACK_URL
+        value: https://goiter-backend.gauravsarma.com/auth/google/callback
+      - key: FRONTEND_URL
+        value: https://goiter.gauravsarma.com
+      - key: STRIPE_PUBLISHABLE_KEY
+        sync: false
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+
+  # Frontend service
+  - type: web
+    runtime: static
+    name: goiter-frontend
+    env: node
+    buildCommand: cd frontend && npm install && npm run build
+    staticPublishPath: frontend/build
+    envVars:
+      - key: REACT_APP_API_URL
+        value: https://goiter-backend.gauravsarma.com
+      - key: REACT_APP_STRIPE_PUBLISHABLE_KEY
+        sync: false

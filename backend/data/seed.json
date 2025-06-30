@@ -1,0 +1,34 @@
+{
+  "plans": [
+    {
+      "name": "Free",
+      "price": 0,
+      "description": "Free plan",
+      "features": [
+        {
+          "name": "Projects",
+          "limit": 1
+        }
+      ]
+    },
+    {
+      "name": "Pro",
+      "price": 10,
+      "description": "Pro plan",
+      "features": [
+        {
+          "name": "Projects",
+          "limit": 10
+        }
+      ]
+    }
+  ],
+  "role_accesses": [
+    {
+      "resource_type": "*",
+      "resource_id": 0,
+      "level": 15,
+      "action": "*"
+    }
+  ]
+}
