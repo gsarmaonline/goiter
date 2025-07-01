@@ -3,6 +3,7 @@ package client
 import (
 	"log"
 	"os"
+	"fmt" // Added for printing
 
 	"github.com/gsarmaonline/goiter/config"
 	"github.com/gsarmaonline/goiter/core"
@@ -10,6 +11,7 @@ import (
 )
 
 func StartServer() {
+	fmt.Println("Attempting to start server...") // Added print statement
 	// Try to load .env file, but don't fail if it doesn't exist
 	if err := godotenv.Load(); err != nil {
 		log.Printf("Warning: .env file not found or error loading it: %v", err)
