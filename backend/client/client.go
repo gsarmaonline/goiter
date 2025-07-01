@@ -1,4 +1,4 @@
-package main
+package client
 
 import (
 	"encoding/json"
@@ -56,11 +56,6 @@ func NewGoiterClient(baseURL string) *GoiterClient {
 
 // Login initiates the Google OAuth flow
 func (c *GoiterClient) Login() error {
-	return c.LoginInteractive()
-}
-
-// LoginInteractive performs interactive login requiring user input
-func (c *GoiterClient) LoginInteractive() error {
 	fmt.Println("🔐 Goiter Client Login")
 	fmt.Println("======================")
 	fmt.Printf("Please follow these steps to authenticate:\n\n")
@@ -75,32 +70,19 @@ func (c *GoiterClient) LoginInteractive() error {
 
 	// Read the session cookie from user input
 	var sessionCookie string
-	n, err := fmt.Scanln(&sessionCookie)
-	if err != nil || n == 0 {
-		return fmt.Errorf("failed to read session cookie: %v", err)
-	}
+	fmt.Scanln(&sessionCookie)
 
 	if sessionCookie == "" {
 		return fmt.Errorf("no session cookie provided")
-	}
-
-	return c.LoginWithSession(sessionCookie)
-}
-
-// LoginWithSession authenticates using a provided session cookie
-func (c *GoiterClient) LoginWithSession(sessionCookie string) error {
-	if sessionCookie == "" {
-		return fmt.Errorf("session cookie cannot be empty")
 	}
 
 	// Set the session cookie
 	c.sessionID = sessionCookie
 
 	// Test the authentication by making a request to /me
-	fmt.Println("🔄 Testing authentication...")
+	fmt.Println("\n🔄 Testing authentication...")
 	user, err := c.GetUser()
 	if err != nil {
-		c.sessionID = "" // Clear invalid session
 		return fmt.Errorf("authentication failed: %v", err)
 	}
 
@@ -246,7 +228,7 @@ func (c *GoiterClient) Logout() error {
 }
 
 // Example usage and CLI interface
-func main() {
+func Run() {
 	if len(os.Args) < 2 {
 		printUsage()
 		return
@@ -268,17 +250,6 @@ func main() {
 
 	case "login":
 		if err := client.Login(); err != nil {
-			fmt.Printf("Login failed: %v\n", err)
-			os.Exit(1)
-		}
-
-	case "login-with-session":
-		if len(os.Args) < 3 {
-			fmt.Println("Usage: go run client.go login-with-session <session_cookie>")
-			os.Exit(1)
-		}
-		sessionCookie := os.Args[2]
-		if err := client.LoginWithSession(sessionCookie); err != nil {
 			fmt.Printf("Login failed: %v\n", err)
 			os.Exit(1)
 		}
@@ -341,12 +312,11 @@ func printUsage() {
 	fmt.Println("Usage: go run client.go <command>")
 	fmt.Println("")
 	fmt.Println("Commands:")
-	fmt.Println("  ping                          - Test server connection")
-	fmt.Println("  login                         - Login with Google OAuth (interactive)")
-	fmt.Println("  login-with-session <cookie>   - Login with session cookie")
-	fmt.Println("  user                          - Get current user info")
-	fmt.Println("  projects                      - List user's projects")
-	fmt.Println("  account                       - Get account information")
+	fmt.Println("  ping     - Test server connection")
+	fmt.Println("  login    - Login with Google OAuth")
+	fmt.Println("  user     - Get current user info")
+	fmt.Println("  projects - List user's projects")
+	fmt.Println("  account  - Get account information")
 	fmt.Println("")
 	fmt.Println("Environment variables:")
 	fmt.Println("  GOITER_BASE_URL - Server URL (default: http://localhost:8080)")

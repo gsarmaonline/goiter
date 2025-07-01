@@ -4,11 +4,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"os"
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/gsarmaonline/goiter/config"
 	"github.com/gsarmaonline/goiter/core/models"
 )
 
@@ -86,6 +88,10 @@ func (h *Handler) handleGoogleCallback(c *gin.Context) {
 	if err := h.db.Save(&user).Error; err != nil {
 		c.JSON(500, gin.H{"error": "Failed to update user status"})
 		return
+	}
+
+	if h.cfg.Mode != config.ModeProd {
+		log.Println("Setting session cookie for development", userInfo.ID)
 	}
 
 	// Set session cookie with more permissive settings for development
