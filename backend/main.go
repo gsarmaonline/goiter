@@ -4,6 +4,7 @@ import (
 	"log"
 	"os"
 
+	"github.com/gsarmaonline/goiter/config"
 	"github.com/gsarmaonline/goiter/core"
 	"github.com/joho/godotenv"
 )
@@ -22,7 +23,7 @@ func main() {
 		}
 	}
 
-	server := core.NewServer()
+	server := core.NewServer(config.DefaultConfig())
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"

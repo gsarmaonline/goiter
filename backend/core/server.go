@@ -6,21 +6,36 @@ import (
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"github.com/gsarmaonline/goiter/config"
 	"github.com/gsarmaonline/goiter/core/handlers"
 	"github.com/gsarmaonline/goiter/core/models"
 )
 
 type (
+	ModeT  string
 	Server struct {
 		router  *gin.Engine
 		dbMgr   *models.DbManager
 		handler *handlers.Handler
+
+		cfg *config.Config
 	}
 )
 
-func NewServer() *Server {
+func NewServer(cfg *config.Config) *Server {
 	// Initialize router
 	router := gin.Default()
+
+	// Initialize config
+	if cfg == nil {
+		cfg = config.DefaultConfig()
+	}
+
+	if cfg.Mode == config.ModeDev {
+		gin.SetMode(gin.DebugMode)
+	} else {
+		gin.SetMode(gin.ReleaseMode)
+	}
 
 	// Get CORS origin from environment variable
 	corsOrigin := os.Getenv("FRONTEND_URL")
@@ -48,7 +63,8 @@ func NewServer() *Server {
 	server := &Server{
 		router:  router,
 		dbMgr:   dbMgr,
-		handler: handlers.NewHandler(router, dbMgr.Db),
+		handler: handlers.NewHandler(router, dbMgr.Db, cfg),
+		cfg:     cfg,
 	}
 
 	return server

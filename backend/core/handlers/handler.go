@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/gin-gonic/gin"
+	"github.com/gsarmaonline/goiter/config"
 	"github.com/gsarmaonline/goiter/core/middleware"
 	"github.com/gsarmaonline/goiter/core/models"
 	"gorm.io/gorm"
@@ -14,15 +15,17 @@ type (
 		router     *gin.Engine
 		db         *gorm.DB
 		middleware *middleware.Middleware
+		cfg        *config.Config
 	}
 )
 
-func NewHandler(router *gin.Engine, db *gorm.DB) (handler *Handler) {
+func NewHandler(router *gin.Engine, db *gorm.DB, cfg *config.Config) (handler *Handler) {
 	middleware := middleware.NewMiddleware(router, db)
 	handler = &Handler{
 		router:     router,
 		db:         db,
 		middleware: middleware,
+		cfg:        cfg,
 	}
 	// Setup routes
 	handler.SetupRoutes()
