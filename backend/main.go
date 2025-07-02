@@ -24,13 +24,8 @@ func main() {
 	}
 
 	server := core.NewServer(config.DefaultConfig())
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = "8080"
-	}
 
-	log.Printf("Starting server on :%s", port)
-	if err := server.Start(":" + port); err != nil {
+	if err := server.Start(); err != nil {
 		log.Fatalf("Failed to start server: %v", err)
 	}
 }

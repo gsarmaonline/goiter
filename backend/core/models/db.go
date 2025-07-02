@@ -2,8 +2,8 @@ package models
 
 import (
 	"fmt"
-	"os"
 
+	"github.com/gsarmaonline/goiter/config"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
@@ -11,6 +11,7 @@ import (
 type (
 	DbManager struct {
 		seeder *Seeder
+		cfg    *config.Config
 		Db     *gorm.DB
 
 		dbHost    string
@@ -22,8 +23,10 @@ type (
 	}
 )
 
-func NewDbManager() (dbMgr *DbManager, err error) {
-	dbMgr = &DbManager{}
+func NewDbManager(cfg *config.Config) (dbMgr *DbManager, err error) {
+	dbMgr = &DbManager{
+		cfg: cfg,
+	}
 	if err = dbMgr.Validate(); err != nil {
 		return
 	}
@@ -44,12 +47,12 @@ func (dbMgr *DbManager) GetDSN() string {
 
 func (dbMgr *DbManager) Validate() (err error) {
 	// Get database connection details from environment variables
-	dbMgr.dbHost = os.Getenv("DB_HOST")
-	dbMgr.dbPort = os.Getenv("DB_PORT")
-	dbMgr.dbUser = os.Getenv("DB_USER")
-	dbMgr.dbPass = os.Getenv("DB_PASSWORD")
-	dbMgr.dbName = os.Getenv("DB_NAME")
-	dbMgr.dbSSLMode = os.Getenv("DB_SSLMODE")
+	dbMgr.dbHost = dbMgr.cfg.DBHost
+	dbMgr.dbPort = dbMgr.cfg.DBPort
+	dbMgr.dbUser = dbMgr.cfg.DBUser
+	dbMgr.dbPass = dbMgr.cfg.DBPassword
+	dbMgr.dbName = dbMgr.cfg.DBName
+	dbMgr.dbSSLMode = "disable"
 	if dbMgr.dbSSLMode == "" {
 		dbMgr.dbSSLMode = "disable" // default for local development
 	}

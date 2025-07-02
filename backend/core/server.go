@@ -1,6 +1,7 @@
 package core
 
 import (
+	"fmt"
 	"log"
 	"os"
 
@@ -31,18 +32,10 @@ func NewServer(cfg *config.Config) *Server {
 		cfg = config.DefaultConfig()
 	}
 
-	if cfg.Mode == config.ModeDev {
-		gin.SetMode(gin.DebugMode)
-	} else {
-		gin.SetMode(gin.ReleaseMode)
-	}
+	gin.SetMode(cfg.GinMode)
 
 	// Get CORS origin from environment variable
 	corsOrigin := os.Getenv("FRONTEND_URL")
-	if corsOrigin == "" {
-		corsOrigin = "http://localhost:3000" // Default to localhost for development
-	}
-	log.Printf("CORS origin: %s", corsOrigin)
 
 	// Configure CORS
 	router.Use(cors.New(cors.Config{
@@ -54,7 +47,7 @@ func NewServer(cfg *config.Config) *Server {
 	}))
 
 	// Initialize database
-	dbMgr, err := models.NewDbManager()
+	dbMgr, err := models.NewDbManager(cfg)
 	if err != nil {
 		log.Fatalf("Failed to initialize database: %v", err)
 	}
@@ -70,6 +63,6 @@ func NewServer(cfg *config.Config) *Server {
 	return server
 }
 
-func (s *Server) Start(addr string) error {
-	return s.router.Run(addr)
+func (s *Server) Start() error {
+	return s.router.Run(fmt.Sprintf(":%s", s.cfg.Port))
 }
