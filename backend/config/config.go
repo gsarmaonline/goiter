@@ -3,15 +3,19 @@ package config
 import "os"
 
 const (
-	ModeTest    ModeT = "test"
-	ModeDev     ModeT = "dev"
-	ModeStaging ModeT = "staging"
-	ModeProd    ModeT = "prod"
+	// Server modes
+	ModeDev  ModeT = "dev"
+	ModeProd ModeT = "prod"
+
+	// DBType
+	PostgresDbType DbTypeT = iota + 1
+	SqliteDbType
 )
 
 type (
-	ModeT  string
-	Config struct {
+	ModeT   string
+	DbTypeT uint8
+	Config  struct {
 		Mode    ModeT
 		GinMode string
 
@@ -20,6 +24,7 @@ type (
 		DBUser     string
 		DBPassword string
 		DBName     string
+		DBType     DbTypeT
 
 		Port string
 	}

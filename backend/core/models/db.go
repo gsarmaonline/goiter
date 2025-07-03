@@ -2,9 +2,11 @@ package models
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/gsarmaonline/goiter/config"
 	"gorm.io/driver/postgres"
+	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
 
@@ -20,6 +22,8 @@ type (
 		dbPass    string
 		dbName    string
 		dbSSLMode string
+
+		dbType config.DbTypeT
 	}
 )
 
@@ -40,6 +44,11 @@ func NewDbManager(cfg *config.Config) (dbMgr *DbManager, err error) {
 	return
 }
 
+func (dbMgr *DbManager) ConnectSqlite() (err error) {
+	dbMgr.Db, err = gorm.Open(sqlite.Open("gorm.db"), &gorm.Config{})
+	return
+}
+
 func (dbMgr *DbManager) GetDSN() string {
 	return fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
 		dbMgr.dbHost, dbMgr.dbPort, dbMgr.dbUser, dbMgr.dbPass, dbMgr.dbName, dbMgr.dbSSLMode)
@@ -52,6 +61,7 @@ func (dbMgr *DbManager) Validate() (err error) {
 	dbMgr.dbUser = dbMgr.cfg.DBUser
 	dbMgr.dbPass = dbMgr.cfg.DBPassword
 	dbMgr.dbName = dbMgr.cfg.DBName
+	dbMgr.dbType = dbMgr.cfg.DBType
 	dbMgr.dbSSLMode = "disable"
 	if dbMgr.dbSSLMode == "" {
 		dbMgr.dbSSLMode = "disable" // default for local development
@@ -80,9 +90,20 @@ func (dbMgr *DbManager) AutoMigrate() (err error) {
 }
 
 func (dbMgr *DbManager) Setup() (err error) {
-	if dbMgr.Db, err = gorm.Open(postgres.Open(dbMgr.GetDSN()), &gorm.Config{}); err != nil {
-		return
+
+	if dbMgr.dbType == config.SqliteDbType {
+		log.Println("Using SQLite for local development")
+		// Default to SQLite for local development
+		if err = dbMgr.ConnectSqlite(); err != nil {
+			return
+		}
+	} else {
+		log.Println("Using Postgres")
+		if dbMgr.Db, err = gorm.Open(postgres.Open(dbMgr.GetDSN()), &gorm.Config{}); err != nil {
+			return
+		}
 	}
+
 	if err = dbMgr.AutoMigrate(); err != nil {
 		return
 	}

@@ -1,6 +1,7 @@
 package client
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -43,7 +44,7 @@ type Account struct {
 // NewGoiterClient creates a new client instance
 func NewGoiterClient(baseURL string) *GoiterClient {
 	if baseURL == "" {
-		baseURL = "http://localhost:8080"
+		baseURL = "http://localhost:8090"
 	}
 
 	return &GoiterClient{
@@ -54,24 +55,50 @@ func NewGoiterClient(baseURL string) *GoiterClient {
 	}
 }
 
+func (c *GoiterClient) shortCircuitLogin(baseURL string) (token string, err error) {
+	var (
+		resp *http.Response
+	)
+
+	reqBody := map[string]string{
+		"email": "user1@gmail.com",
+	}
+	reqBodyJSON, _ := json.Marshal(reqBody)
+
+	req, err := http.NewRequest("POST", c.BaseURL+"/auth/shortcircuitlogin", bytes.NewReader(reqBodyJSON))
+	if err != nil {
+		return
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	if resp, err = c.httpClient.Do(req); err != nil {
+		return
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK || err != nil {
+		err = fmt.Errorf("Failed to login: %s", err)
+		return
+	}
+	respBody, _ := io.ReadAll(resp.Body)
+	var respData map[string]string
+	if err = json.Unmarshal(respBody, &respData); err != nil {
+		return
+	}
+	token = respData["code"]
+	return
+}
+
 // Login initiates the Google OAuth flow
 func (c *GoiterClient) Login() error {
 	fmt.Println("🔐 Goiter Client Login")
-	fmt.Println("======================")
-	fmt.Printf("Please follow these steps to authenticate:\n\n")
-
-	fmt.Printf("1. Open your browser and visit: %s/auth/google\n", c.BaseURL)
-	fmt.Printf("2. Complete the Google OAuth flow\n")
-	fmt.Printf("3. After successful login, you'll be redirected to the frontend\n")
-	fmt.Printf("4. Open your browser's developer tools (F12)\n")
-	fmt.Printf("5. Go to Application/Storage -> Cookies\n")
-	fmt.Printf("6. Find the 'session' cookie and copy its value\n")
-	fmt.Printf("7. Paste the session cookie value here: ")
-
-	// Read the session cookie from user input
-	var sessionCookie string
-	fmt.Scanln(&sessionCookie)
-
+	var (
+		sessionCookie string
+		err           error
+	)
+	if sessionCookie, err = c.shortCircuitLogin(c.BaseURL); err != nil {
+		return fmt.Errorf("failed to login: %v", err)
+	}
 	if sessionCookie == "" {
 		return fmt.Errorf("no session cookie provided")
 	}
@@ -319,5 +346,5 @@ func printUsage() {
 	fmt.Println("  account  - Get account information")
 	fmt.Println("")
 	fmt.Println("Environment variables:")
-	fmt.Println("  GOITER_BASE_URL - Server URL (default: http://localhost:8080)")
+	fmt.Println("  GOITER_BASE_URL - Server URL (default: http://localhost:8090)")
 }

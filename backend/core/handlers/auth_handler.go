@@ -4,9 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
+	"math/rand"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -24,6 +25,61 @@ type (
 		Scope        string `json:"scope"`
 	}
 )
+
+func (h *Handler) handleShortCircuitLogin(c *gin.Context) {
+	type (
+		ShortCircuitLogin struct {
+			Email string `json:"email"`
+		}
+	)
+	if h.cfg.Mode != config.ModeDev {
+		c.JSON(403, gin.H{"error": "Short circuit login is only allowed in development mode"})
+		return
+	}
+	req := &ShortCircuitLogin{}
+	if err := c.ShouldBindJSON(req); err != nil {
+		c.JSON(400, gin.H{"error": "Invalid request"})
+		return
+	}
+
+	someRandomNumber := strconv.Itoa(rand.Int())
+	// Create or update user in database
+	user := models.User{
+		GoogleID:   someRandomNumber,
+		Email:      req.Email,
+		Name:       fmt.Sprintf("User %s", req.Email),
+		UserStatus: models.ActiveUser,
+	}
+	modUser := &models.User{}
+
+	if result := h.db.Where(models.User{Email: req.Email}).FirstOrCreate(&modUser); result.Error != nil {
+		c.JSON(500, gin.H{"error": "Failed to save user"})
+		return
+	}
+	user.ID = modUser.ID
+
+	if err := h.db.Save(&user).Error; err != nil {
+		c.JSON(500, gin.H{"error": "Failed to update user status"})
+		return
+	}
+
+	// Set session cookie with more permissive settings for development
+	c.SetCookie(
+		"session",
+		someRandomNumber,
+		3600*24*7, // 7 days
+		"/",
+		"",
+		false, // Set to false for development
+		false, // Set to false for development
+	)
+
+	c.JSON(200, gin.H{
+		"message": "Short circuit login successful",
+		"code":    someRandomNumber,
+	})
+
+}
 
 func (h *Handler) handleGoogleLogin(c *gin.Context) {
 	googleClientID := os.Getenv("GOOGLE_CLIENT_ID")
@@ -88,10 +144,6 @@ func (h *Handler) handleGoogleCallback(c *gin.Context) {
 	if err := h.db.Save(&user).Error; err != nil {
 		c.JSON(500, gin.H{"error": "Failed to update user status"})
 		return
-	}
-
-	if h.cfg.Mode != config.ModeProd {
-		log.Println("Setting session cookie for development", userInfo.ID)
 	}
 
 	// Set session cookie with more permissive settings for development

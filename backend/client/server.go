@@ -18,6 +18,7 @@ func StartServer() {
 	cfg := config.DefaultConfig()
 	cfg.Mode = config.ModeDev
 	cfg.Port = "8090"
+	cfg.DBType = config.SqliteDbType
 
 	server := core.NewServer(cfg)
 

@@ -41,6 +41,7 @@ func (h *Handler) setupAuthRoutes() {
 	authOpenRoutes := h.router.Group("/auth")
 	{
 		// Public routes (no auth required)
+		authOpenRoutes.POST("/shortcircuitlogin", h.handleShortCircuitLogin)
 		authOpenRoutes.GET("/google", h.handleGoogleLogin)
 		authOpenRoutes.GET("/google/callback", h.handleGoogleCallback)
 	}
