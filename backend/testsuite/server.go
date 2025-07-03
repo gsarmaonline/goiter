@@ -1,4 +1,4 @@
-package client
+package testsuite
 
 import (
 	"fmt" // Added for printing

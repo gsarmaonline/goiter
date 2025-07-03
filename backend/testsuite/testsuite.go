@@ -1,4 +1,4 @@
-package client
+package testsuite
 
 import (
 	"bytes"
@@ -7,8 +7,6 @@ import (
 	"io"
 	"net/http"
 	"os"
-	"os/exec"
-	"runtime"
 	"time"
 )
 
@@ -115,24 +113,6 @@ func (c *GoiterClient) Login() error {
 
 	fmt.Printf("✅ Login successful! Welcome, %s (%s)\n", user.Name, user.Email)
 	return nil
-}
-
-// openBrowser opens the default browser to the given URL
-func (c *GoiterClient) openBrowser(url string) error {
-	var cmd string
-	var args []string
-
-	switch runtime.GOOS {
-	case "windows":
-		cmd = "cmd"
-		args = []string{"/c", "start"}
-	case "darwin":
-		cmd = "open"
-	default: // "linux", "freebsd", "openbsd", "netbsd"
-		cmd = "xdg-open"
-	}
-	args = append(args, url)
-	return exec.Command(cmd, args...).Start()
 }
 
 // makeRequest makes an authenticated HTTP request
