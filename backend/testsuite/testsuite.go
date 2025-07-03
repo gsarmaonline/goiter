@@ -1,8 +1,6 @@
 package testsuite
 
 import (
-	"bytes"
-	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -14,29 +12,6 @@ type GoiterClient struct {
 	BaseURL    string
 	httpClient *http.Client
 	sessionID  string
-}
-
-type User struct {
-	ID      uint   `json:"id"`
-	Email   string `json:"email"`
-	Name    string `json:"name"`
-	Picture string `json:"picture"`
-}
-
-type Project struct {
-	ID          uint   `json:"id"`
-	Name        string `json:"name"`
-	Description string `json:"description"`
-	AccountID   uint   `json:"account_id"`
-	UserID      uint   `json:"user_id"`
-}
-
-type Account struct {
-	ID                 uint   `json:"id"`
-	Name               string `json:"name"`
-	Description        string `json:"description"`
-	PlanID             uint   `json:"plan_id"`
-	SubscriptionStatus string `json:"subscription_status"`
 }
 
 // NewGoiterClient creates a new client instance
@@ -51,68 +26,6 @@ func NewGoiterClient(baseURL string) *GoiterClient {
 			Timeout: 30 * time.Second,
 		},
 	}
-}
-
-func (c *GoiterClient) shortCircuitLogin(baseURL string) (token string, err error) {
-	var (
-		resp *http.Response
-	)
-
-	reqBody := map[string]string{
-		"email": "user1@gmail.com",
-	}
-	reqBodyJSON, _ := json.Marshal(reqBody)
-
-	req, err := http.NewRequest("POST", c.BaseURL+"/auth/shortcircuitlogin", bytes.NewReader(reqBodyJSON))
-	if err != nil {
-		return
-	}
-	req.Header.Set("Content-Type", "application/json")
-
-	if resp, err = c.httpClient.Do(req); err != nil {
-		return
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK || err != nil {
-		err = fmt.Errorf("Failed to login: %s", err)
-		return
-	}
-	respBody, _ := io.ReadAll(resp.Body)
-	var respData map[string]string
-	if err = json.Unmarshal(respBody, &respData); err != nil {
-		return
-	}
-	token = respData["code"]
-	return
-}
-
-// Login initiates the Google OAuth flow
-func (c *GoiterClient) Login() error {
-	fmt.Println("🔐 Goiter Client Login")
-	var (
-		sessionCookie string
-		err           error
-	)
-	if sessionCookie, err = c.shortCircuitLogin(c.BaseURL); err != nil {
-		return fmt.Errorf("failed to login: %v", err)
-	}
-	if sessionCookie == "" {
-		return fmt.Errorf("no session cookie provided")
-	}
-
-	// Set the session cookie
-	c.sessionID = sessionCookie
-
-	// Test the authentication by making a request to /me
-	fmt.Println("\n🔄 Testing authentication...")
-	user, err := c.GetUser()
-	if err != nil {
-		return fmt.Errorf("authentication failed: %v", err)
-	}
-
-	fmt.Printf("✅ Login successful! Welcome, %s (%s)\n", user.Name, user.Email)
-	return nil
 }
 
 // makeRequest makes an authenticated HTTP request
@@ -137,69 +50,6 @@ func (c *GoiterClient) makeRequest(method, endpoint string, body io.Reader) (*ht
 	}
 
 	return c.httpClient.Do(req)
-}
-
-// GetUser retrieves the current user information
-func (c *GoiterClient) GetUser() (*User, error) {
-	resp, err := c.makeRequest("GET", "/me", nil)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("failed to get user: %s", string(body))
-	}
-
-	var user User
-	if err := json.NewDecoder(resp.Body).Decode(&user); err != nil {
-		return nil, err
-	}
-
-	return &user, nil
-}
-
-// GetProjects retrieves all projects for the current user
-func (c *GoiterClient) GetProjects() ([]Project, error) {
-	resp, err := c.makeRequest("GET", "/projects", nil)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("failed to get projects: %s", string(body))
-	}
-
-	var projects []Project
-	if err := json.NewDecoder(resp.Body).Decode(&projects); err != nil {
-		return nil, err
-	}
-
-	return projects, nil
-}
-
-// GetAccount retrieves the current user's account
-func (c *GoiterClient) GetAccount() (*Account, error) {
-	resp, err := c.makeRequest("GET", "/account", nil)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("failed to get account: %s", string(body))
-	}
-
-	var account Account
-	if err := json.NewDecoder(resp.Body).Decode(&account); err != nil {
-		return nil, err
-	}
-
-	return &account, nil
 }
 
 // Ping tests the connection to the server
@@ -236,95 +86,14 @@ func (c *GoiterClient) Logout() error {
 
 // Example usage and CLI interface
 func Run() {
-	if len(os.Args) < 2 {
-		printUsage()
-		return
-	}
 
 	// Initialize client
 	baseURL := os.Getenv("GOITER_BASE_URL")
 	client := NewGoiterClient(baseURL)
 
-	command := os.Args[1]
+	client.RunUserSuite()
+	client.RunProfileSuite()
+	client.RunAccountSuite()
+	client.RunProjectSuite()
 
-	switch command {
-	case "ping":
-		if err := client.Ping(); err != nil {
-			fmt.Printf("Error: %v\n", err)
-			os.Exit(1)
-		}
-		fmt.Println("Server is running!")
-
-	case "login":
-		if err := client.Login(); err != nil {
-			fmt.Printf("Login failed: %v\n", err)
-			os.Exit(1)
-		}
-
-	case "user":
-		if err := client.Login(); err != nil {
-			fmt.Printf("Login failed: %v\n", err)
-			os.Exit(1)
-		}
-
-		user, err := client.GetUser()
-		if err != nil {
-			fmt.Printf("Error getting user: %v\n", err)
-			os.Exit(1)
-		}
-
-		fmt.Printf("User: %s (%s)\n", user.Name, user.Email)
-
-	case "projects":
-		if err := client.Login(); err != nil {
-			fmt.Printf("Login failed: %v\n", err)
-			os.Exit(1)
-		}
-
-		projects, err := client.GetProjects()
-		if err != nil {
-			fmt.Printf("Error getting projects: %v\n", err)
-			os.Exit(1)
-		}
-
-		fmt.Printf("Projects (%d):\n", len(projects))
-		for _, project := range projects {
-			fmt.Printf("- %s: %s\n", project.Name, project.Description)
-		}
-
-	case "account":
-		if err := client.Login(); err != nil {
-			fmt.Printf("Login failed: %v\n", err)
-			os.Exit(1)
-		}
-
-		account, err := client.GetAccount()
-		if err != nil {
-			fmt.Printf("Error getting account: %v\n", err)
-			os.Exit(1)
-		}
-
-		fmt.Printf("Account: %s\n", account.Name)
-		fmt.Printf("Description: %s\n", account.Description)
-		fmt.Printf("Subscription: %s\n", account.SubscriptionStatus)
-
-	default:
-		fmt.Printf("Unknown command: %s\n", command)
-		printUsage()
-		os.Exit(1)
-	}
-}
-
-func printUsage() {
-	fmt.Println("Usage: go run client.go <command>")
-	fmt.Println("")
-	fmt.Println("Commands:")
-	fmt.Println("  ping     - Test server connection")
-	fmt.Println("  login    - Login with Google OAuth")
-	fmt.Println("  user     - Get current user info")
-	fmt.Println("  projects - List user's projects")
-	fmt.Println("  account  - Get account information")
-	fmt.Println("")
-	fmt.Println("Environment variables:")
-	fmt.Println("  GOITER_BASE_URL - Server URL (default: http://localhost:8090)")
 }
