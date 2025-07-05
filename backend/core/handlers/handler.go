@@ -171,14 +171,14 @@ func (h *Handler) CreateWithUser(c *gin.Context, model models.UserOwnedModel) (e
 	return
 }
 
-func (h *Handler) UpdateWithUser(c *gin.Context, model models.UserOwnedModel) (err error) {
+func (h *Handler) UpdateWithUser(c *gin.Context, model models.UserOwnedModel, toUpdateWith interface{}) (err error) {
 	user := h.GetUserFromContext(c)
 	model.SetUserID(user.ID)
 	if false == models.CanAccessResource(h.db, h.GetTableName(model), model.GetID(), user, models.UpdateAction) {
 		err = fmt.Errorf("unauthorized access to resource: %s", h.GetTableName(model))
 		return
 	}
-	err = h.db.Save(model).Error
+	err = h.db.Model(model).Updates(toUpdateWith).Error
 	return
 }
 
@@ -191,4 +191,21 @@ func (h *Handler) DeleteWithUser(c *gin.Context, model models.UserOwnedModel) (e
 	}
 	err = h.db.Delete(model).Error
 	return
+}
+
+func (h *Handler) WriteSuccess(c *gin.Context, data interface{}) {
+	h.WriteJSON(c, 200, data)
+	return
+}
+
+func (h *Handler) WriteError(c *gin.Context, err error, message string) {
+	c.JSON(500, gin.H{
+		"error": message,
+	})
+}
+
+func (h *Handler) WriteJSON(c *gin.Context, status int, data interface{}) {
+	c.JSON(status, gin.H{
+		"data": data,
+	})
 }

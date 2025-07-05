@@ -13,23 +13,28 @@ func (h *Handler) handleGetProfile(c *gin.Context) {
 		return
 	}
 
-	c.JSON(200, profile)
+	h.WriteSuccess(c, profile)
 }
 
 // handleUpdateProfile handles the profile update request
 func (h *Handler) handleUpdateProfile(c *gin.Context) {
 	updatedProfile := &models.Profile{}
+	profile := &models.Profile{}
 
 	if err := c.ShouldBindJSON(&updatedProfile); err != nil {
 		c.JSON(400, gin.H{"error": "Invalid request body"})
 		return
 	}
+	if err := h.FirstWithUser(c, profile, h.UserScopedDB(c)); err != nil {
+		c.JSON(404, gin.H{"error": "Profile not found"})
+		return
+	}
 
 	// Update profile
-	if err := h.UpdateWithUser(c, updatedProfile); err != nil {
+	if err := h.UpdateWithUser(c, profile, updatedProfile); err != nil {
 		c.JSON(500, gin.H{"error": "Failed to update profile"})
 		return
 	}
 
-	c.JSON(200, updatedProfile)
+	h.WriteSuccess(c, updatedProfile)
 }

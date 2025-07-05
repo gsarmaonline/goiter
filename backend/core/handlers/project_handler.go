@@ -63,7 +63,7 @@ func (h *ProjectHandler) ListProjects(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, projects)
+	h.handler.WriteSuccess(c, projects)
 }
 
 // CreateProject creates a new project
@@ -122,7 +122,7 @@ func (h *ProjectHandler) CreateProject(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusCreated, project)
+	h.handler.WriteSuccess(c, project)
 }
 
 // GetProject retrieves a project by ID
@@ -145,7 +145,7 @@ func (h *ProjectHandler) GetProject(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, project)
+	h.handler.WriteSuccess(c, project)
 }
 
 // UpdateProject updates a project
@@ -191,7 +191,7 @@ func (h *ProjectHandler) UpdateProject(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, project)
+	h.handler.WriteSuccess(c, project)
 }
 
 // DeleteProject deletes a project
@@ -213,7 +213,7 @@ func (h *ProjectHandler) DeleteProject(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Project deleted successfully"})
+	h.handler.WriteSuccess(c, nil)
 }
 
 // AddProjectMember adds a user to a project with a specific permission level
@@ -253,7 +253,7 @@ func (h *ProjectHandler) AddProjectMember(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, permission)
+	h.handler.WriteSuccess(c, permission)
 }
 
 // RemoveProjectMember removes a user from a project
@@ -288,5 +288,5 @@ func (h *ProjectHandler) RemoveProjectMember(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Project member removed successfully"})
+	h.handler.WriteSuccess(c, nil)
 }

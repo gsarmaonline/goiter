@@ -34,7 +34,7 @@ func (h *AccountHandler) GetAccount(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, account)
+	h.handler.WriteSuccess(c, account)
 }
 
 // UpdateAccount updates the account for the current user
@@ -60,10 +60,10 @@ func (h *AccountHandler) UpdateAccount(c *gin.Context) {
 	account.Description = updateData.Description
 	account.PlanID = updateData.PlanID
 
-	if err := h.handler.UpdateWithUser(c, &account); err != nil {
+	if err := h.handler.UpdateWithUser(c, &account, &account); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update account"})
 		return
 	}
 
-	c.JSON(http.StatusOK, account)
+	h.handler.WriteSuccess(c, account)
 }

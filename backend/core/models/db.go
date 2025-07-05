@@ -10,6 +10,22 @@ import (
 	"gorm.io/gorm"
 )
 
+const (
+	sqliteDbPath = "gorm.db" // Default SQLite database file path
+)
+
+var (
+	Models = []interface{}{
+		&User{},
+		&Profile{},
+		&Account{},
+		&Project{},
+		&ProjectPermission{},
+		&RoleAccess{},
+		&Plan{},
+	}
+)
+
 type (
 	DbManager struct {
 		seeder *Seeder
@@ -22,6 +38,8 @@ type (
 		dbPass    string
 		dbName    string
 		dbSSLMode string
+
+		models map[string]interface{}
 
 		dbType config.DbTypeT
 	}
@@ -45,7 +63,7 @@ func NewDbManager(cfg *config.Config) (dbMgr *DbManager, err error) {
 }
 
 func (dbMgr *DbManager) ConnectSqlite() (err error) {
-	dbMgr.Db, err = gorm.Open(sqlite.Open("gorm.db"), &gorm.Config{})
+	dbMgr.Db, err = gorm.Open(sqlite.Open(sqliteDbPath), &gorm.Config{})
 	return
 }
 
@@ -75,16 +93,10 @@ func (dbMgr *DbManager) Validate() (err error) {
 }
 
 func (dbMgr *DbManager) AutoMigrate() (err error) {
-	if err = dbMgr.Db.AutoMigrate(
-		&User{},
-		&Profile{},
-		&Account{},
-		&Project{},
-		&ProjectPermission{},
-		&RoleAccess{},
-		&Plan{},
-	); err != nil {
-		return
+	for _, model := range Models {
+		if err = dbMgr.Db.AutoMigrate(model); err != nil {
+			return
+		}
 	}
 	return
 }
@@ -103,7 +115,9 @@ func (dbMgr *DbManager) Setup() (err error) {
 			return
 		}
 	}
-
+	if dbMgr.cfg.Mode == config.ModeDev {
+		dbMgr.DropModels()
+	}
 	if err = dbMgr.AutoMigrate(); err != nil {
 		return
 	}
@@ -115,4 +129,14 @@ func (dbMgr *DbManager) PostMigrate() (err error) {
 		return
 	}
 	return
+}
+
+func (db *DbManager) DropModels() (err error) {
+	log.Println("Dropping all models")
+	for _, model := range Models {
+		if err = db.Db.Migrator().DropTable(model); err != nil {
+			return fmt.Errorf("failed to drop table for model %T: %w", model, err)
+		}
+	}
+	return nil
 }

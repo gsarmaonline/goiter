@@ -1,6 +1,9 @@
 package testsuite
 
 import (
+	"bytes"
+	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -11,32 +14,42 @@ import (
 type GoiterClient struct {
 	BaseURL    string
 	httpClient *http.Client
-	sessionID  string
+
+	sessionID string
 }
 
 // NewGoiterClient creates a new client instance
-func NewGoiterClient(baseURL string) *GoiterClient {
+func NewGoiterClient(baseURL string) (gc *GoiterClient) {
 	if baseURL == "" {
 		baseURL = "http://localhost:8090"
 	}
 
-	return &GoiterClient{
+	gc = &GoiterClient{
 		BaseURL: baseURL,
 		httpClient: &http.Client{
 			Timeout: 30 * time.Second,
 		},
 	}
+	return
 }
 
 // makeRequest makes an authenticated HTTP request
-func (c *GoiterClient) makeRequest(method, endpoint string, body io.Reader) (*http.Response, error) {
-	if c.sessionID == "" {
-		return nil, fmt.Errorf("not authenticated - please login first")
-	}
+func (c *GoiterClient) makeRequest(method, endpoint string,
+	body interface{}) (resp *http.Response, respBody map[string]interface{}, err error) {
 
-	req, err := http.NewRequest(method, c.BaseURL+endpoint, body)
-	if err != nil {
-		return nil, err
+	var (
+		reqBody *bytes.Reader
+		req     *http.Request
+	)
+	if c.sessionID == "" {
+		err = errors.New("session ID is not set")
+		return
+	}
+	bodyb, _ := json.Marshal(body)
+	reqBody = bytes.NewReader(bodyb)
+
+	if req, err = http.NewRequest(method, c.BaseURL+endpoint, reqBody); err != nil {
+		return
 	}
 
 	// Add session cookie
@@ -49,7 +62,22 @@ func (c *GoiterClient) makeRequest(method, endpoint string, body io.Reader) (*ht
 		req.Header.Set("Content-Type", "application/json")
 	}
 
-	return c.httpClient.Do(req)
+	if resp, err = c.httpClient.Do(req); err != nil {
+		return
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK && err == nil {
+		err = fmt.Errorf("request failed with status: %d", resp.StatusCode)
+		return
+	}
+
+	respBody = make(map[string]interface{})
+	respB, err := io.ReadAll(resp.Body)
+	if err = json.Unmarshal(respB, &respBody); err != nil {
+		return
+	}
+
+	return
 }
 
 // Ping tests the connection to the server
@@ -67,24 +95,6 @@ func (c *GoiterClient) Ping() error {
 	return nil
 }
 
-// Logout clears the session
-func (c *GoiterClient) Logout() error {
-	if c.sessionID == "" {
-		return nil
-	}
-
-	resp, err := c.makeRequest("POST", "/logout", nil)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-
-	c.sessionID = ""
-	fmt.Println("Logged out successfully!")
-	return nil
-}
-
-// Example usage and CLI interface
 func Run() {
 
 	// Initialize client

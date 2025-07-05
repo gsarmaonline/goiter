@@ -1,6 +1,10 @@
 package models
 
-import "gorm.io/gorm"
+import (
+	"log"
+
+	"gorm.io/gorm"
+)
 
 const (
 	// Actions
@@ -67,6 +71,12 @@ func CanAccessResource(db *gorm.DB,
 			projectPermission.Level,
 		); allowAccess {
 			// If we found a matching role access entry, we can return true
+			log.Println("Access granted for resource:",
+				permissionScope.ResourceType,
+				permissionScope.ResourceID,
+				"with action:",
+				permissionScope.Action,
+			)
 			return true
 		}
 		if !proceedToNext {

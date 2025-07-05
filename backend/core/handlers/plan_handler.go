@@ -14,5 +14,5 @@ func (h *Handler) GetPlans(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, plans)
+	h.WriteSuccess(c, plans)
 }

@@ -8,32 +8,12 @@ import (
 	"net/http"
 )
 
-type User struct {
-	ID      uint   `json:"id"`
-	Email   string `json:"email"`
-	Name    string `json:"name"`
-	Picture string `json:"picture"`
-}
-
 // GetUser retrieves the current user information
-func (c *GoiterClient) GetUser() (*User, error) {
-	resp, err := c.makeRequest("GET", "/me", nil)
-	if err != nil {
-		return nil, err
+func (c *GoiterClient) GetUser() (user map[string]interface{}, err error) {
+	if _, user, err = c.makeRequest("GET", "/me", nil); err != nil {
+		return
 	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("failed to get user: %s", string(body))
-	}
-
-	var user User
-	if err := json.NewDecoder(resp.Body).Decode(&user); err != nil {
-		return nil, err
-	}
-
-	return &user, nil
+	return
 }
 
 func (c *GoiterClient) shortCircuitLogin(baseURL string) (token string, err error) {
@@ -94,10 +74,28 @@ func (c *GoiterClient) Login() error {
 		return fmt.Errorf("authentication failed: %v", err)
 	}
 
-	fmt.Printf("✅ Login successful! Welcome, %s (%s)\n", user.Name, user.Email)
+	fmt.Println("✅ Login successful! Welcome", user)
+	return nil
+}
+
+// Logout clears the session
+func (c *GoiterClient) Logout() (err error) {
+	if c.sessionID == "" {
+		return nil
+	}
+
+	if _, _, err := c.makeRequest("POST", "/logout", nil); err != nil {
+		return err
+	}
+
+	c.sessionID = ""
+	fmt.Println("Logged out successfully!")
 	return nil
 }
 
 func (c *GoiterClient) RunUserSuite() (err error) {
+	if err = c.Login(); err != nil {
+		return
+	}
 	return
 }
