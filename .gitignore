@@ -1,7 +1,7 @@
 # Environment variables
 *.env
 .env.*
-backend/tmp/*
+*tmp/*
 
 # Dependencies
 node_modules/

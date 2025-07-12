@@ -3,6 +3,7 @@ package models
 import (
 	"fmt"
 	"log"
+	"reflect"
 
 	"github.com/gsarmaonline/goiter/config"
 	"gorm.io/driver/postgres"
@@ -67,9 +68,11 @@ func (dbMgr *DbManager) ConnectSqlite() (err error) {
 	return
 }
 
-func (dbMgr *DbManager) GetDSN() string {
-	return fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
+func (dbMgr *DbManager) GetDSN() (dsn string) {
+	dsn = fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
 		dbMgr.dbHost, dbMgr.dbPort, dbMgr.dbUser, dbMgr.dbPass, dbMgr.dbName, dbMgr.dbSSLMode)
+	log.Println(dsn)
+	return
 }
 
 func (dbMgr *DbManager) Validate() (err error) {
@@ -94,7 +97,8 @@ func (dbMgr *DbManager) Validate() (err error) {
 
 func (dbMgr *DbManager) AutoMigrate() (err error) {
 	for _, model := range Models {
-		if err = dbMgr.Db.AutoMigrate(model); err != nil {
+		log.Println(reflect.TypeOf(model), dbMgr.Db, "migrating")
+		if err = dbMgr.Db.Debug().AutoMigrate(model); err != nil {
 			return
 		}
 	}

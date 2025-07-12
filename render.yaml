@@ -11,8 +11,8 @@ services:
     env: go
     region: oregon
     plan: free
-    buildCommand: cd backend && go build -o main
-    startCommand: cd backend && ./main
+    buildCommand: go build -o main
+    startCommand: ./main
     envVars:
       - key: DB_HOST
         fromDatabase:

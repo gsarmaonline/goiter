@@ -5,12 +5,14 @@ A comprehensive boilerplate for building modern SaaS applications with authentic
 ## 🚀 Features
 
 ### 🔐 Authentication & Authorization
+
 - **Google OAuth 2.0** integration for secure user authentication
 - **Session-based authentication** with secure cookie management
 - **Role-based access control** with granular permissions
 - **User profile management** with automatic profile and account creation
 
 ### 💳 Billing & Subscriptions
+
 - **Stripe integration** for payment processing
 - **Multiple subscription plans** (Free, Pro, Enterprise)
 - **Feature-based plan limitations**
@@ -18,12 +20,14 @@ A comprehensive boilerplate for building modern SaaS applications with authentic
 - **Webhook handling** for subscription events
 
 ### 📊 Project & Account Management
+
 - **Multi-tenant architecture** with account isolation
 - **Project management** with user-based access control
 - **Account-level billing** and subscription management
 - **User profiles** with customizable settings
 
 ### 🛠️ Developer Experience
+
 - **Hot reloading** with Air for rapid development
 - **Comprehensive Go client SDK** for API integration
 - **Database migrations** and seeding
@@ -33,6 +37,7 @@ A comprehensive boilerplate for building modern SaaS applications with authentic
 ## 🏗️ Tech Stack
 
 ### Backend
+
 - **Go 1.23+** with Gin web framework
 - **PostgreSQL** database with GORM ORM
 - **Stripe** for payment processing
@@ -40,12 +45,14 @@ A comprehensive boilerplate for building modern SaaS applications with authentic
 - **Air** for hot reloading during development
 
 ### Frontend (Coming Soon)
+
 - **React** with modern hooks
 - **TypeScript** for type safety
 - **Tailwind CSS** for styling
 - **Stripe Elements** for payment forms
 
 ### Infrastructure
+
 - **Render** for cloud deployment
 - **Docker** for containerization
 - **Make** for build automation
@@ -74,18 +81,21 @@ goiter/
 ## 🚦 Quick Start
 
 ### Prerequisites
+
 - Go 1.23 or higher
 - PostgreSQL 13 or higher
 - Stripe account (for billing features)
 - Google OAuth credentials
 
 ### 1. Clone the Repository
+
 ```bash
 git clone https://github.com/gsarmaonline/goiter.git
 cd goiter
 ```
 
 ### 2. Database Setup
+
 ```bash
 # Create PostgreSQL database
 createdb goiter
@@ -95,6 +105,7 @@ psql -U postgres -c "CREATE DATABASE goiter;"
 ```
 
 ### 3. Environment Configuration
+
 Create a `.env` file in the `backend/` directory:
 
 ```env
@@ -122,12 +133,13 @@ STRIPE_WEBHOOK_SECRET=whsec_your_webhook_secret
 ```
 
 ### 4. Install Dependencies
+
 ```bash
-cd backend
 go mod download
 ```
 
 ### 5. Run the Application
+
 ```bash
 # Start with hot reloading (recommended for development)
 make start-backend
@@ -137,6 +149,7 @@ make start-backend-no-air
 ```
 
 ### 6. Test the Installation
+
 ```bash
 # Test server connectivity
 go run client/client.go ping
@@ -148,6 +161,7 @@ go run client/client.go login
 ## 🔧 Development Workflow
 
 ### Available Make Commands
+
 ```bash
 # Start backend with hot reloading
 make start-backend
@@ -167,6 +181,7 @@ make clean       # Reset database
 ```
 
 ### Database Management
+
 ```bash
 # Connect to database
 make db
@@ -183,17 +198,20 @@ make clean
 ## 📚 API Documentation
 
 ### Authentication Endpoints
+
 - `GET /auth/google` - Initiate Google OAuth flow
 - `GET /auth/google/callback` - Handle OAuth callback
 - `GET /me` - Get current user information
 - `POST /logout` - Logout current user
 
 ### User Management
+
 - `GET /me` - Get current user profile
 - `GET /profile` - Get detailed user profile
 - `PUT /profile` - Update user profile
 
 ### Project Management
+
 - `GET /projects` - List user's projects
 - `POST /projects` - Create new project
 - `GET /projects/:id` - Get project details
@@ -201,6 +219,7 @@ make clean
 - `DELETE /projects/:id` - Delete project
 
 ### Account & Billing
+
 - `GET /account` - Get account information
 - `PUT /account` - Update account settings
 - `GET /plans` - List available subscription plans
@@ -208,12 +227,14 @@ make clean
 - `POST /billing/portal` - Access billing portal
 
 ### Utility Endpoints
+
 - `GET /ping` - Health check
 - `GET /plans` - List available plans
 
 ## 🚀 Deployment
 
 ### Render Deployment
+
 The project includes a `render.yaml` file for easy deployment to Render:
 
 1. **Push to GitHub**: Ensure your code is in a GitHub repository
@@ -225,9 +246,9 @@ The project includes a `render.yaml` file for easy deployment to Render:
    - Database credentials (auto-configured by Render)
 
 ### Manual Deployment
+
 ```bash
 # Build the application
-cd backend
 go build -o main
 
 # Run in production
@@ -239,16 +260,19 @@ go build -o main
 The boilerplate includes a flexible plan system:
 
 ### Free Plan
+
 - 1 project limit
 - Basic features
 - No billing required
 
 ### Pro Plan
+
 - 10 project limit
 - Advanced features
 - $10/month
 
 ### Custom Plans
+
 Easily add new plans by modifying `backend/data/seed.json`:
 
 ```json
@@ -282,7 +306,6 @@ Easily add new plans by modifying `backend/data/seed.json`:
 
 ```bash
 # Run tests
-cd backend
 go test ./...
 
 # Run tests with coverage
@@ -310,6 +333,7 @@ The application includes structured logging and is ready for monitoring integrat
 5. Open a Pull Request
 
 ### Development Guidelines
+
 - Follow Go best practices and conventions
 - Add tests for new features
 - Update documentation for API changes
@@ -338,4 +362,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 **Happy coding! 🚀**
 
-> Goiter provides everything you need to build a modern SaaS application. Focus on your unique business logic while we handle the boilerplate. 
+> Goiter provides everything you need to build a modern SaaS application. Focus on your unique business logic while we handle the boilerplate.

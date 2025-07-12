@@ -1,14 +1,5 @@
 .PHONY: start stop start-backend stop-backend start-backend-no-air check-port clean-air
 
-# Default target
-all: start
-
-# Start both servers
-start: start-backend start-frontend
-
-# Stop both servers
-stop: stop-backend stop-frontend
-
 # Clean up any existing Air processes
 clean-air:
 	@echo "Cleaning up existing Air processes..."
@@ -29,12 +20,12 @@ check-port:
 # Start backend server with hot reloading (default)
 start-backend: clean-air check-port
 	@echo "Starting backend server with Air for hot reloading..."
-	@cd backend && air
+	@air
 
 # Start backend server without hot reloading
 start-backend-no-air: 
 	@echo "Starting backend server without hot reloading..."
-	@cd backend && go run main.go
+	@go run main.go
 
 # Stop backend server
 stop-backend:
