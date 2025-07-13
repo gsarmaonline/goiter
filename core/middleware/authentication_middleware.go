@@ -27,17 +27,7 @@ func (m *Middleware) AuthenticationMiddleware() gin.HandlerFunc {
 			return
 		}
 
-		token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-				return nil, fmt.Errorf("Unexpected signing method: %v", token.Header["alg"])
-			}
-			secret := os.Getenv("JWT_SECRET")
-			if secret == "" {
-				return nil, fmt.Errorf("JWT secret not configured")
-			}
-			return []byte(secret), nil
-		})
-
+		token, err := m.parseToken(tokenString)
 		if err != nil {
 			c.JSON(401, gin.H{"error": "Invalid token"})
 			c.Abort()
@@ -62,4 +52,17 @@ func (m *Middleware) AuthenticationMiddleware() gin.HandlerFunc {
 			return
 		}
 	}
+}
+
+func (m *Middleware) parseToken(tokenString string) (*jwt.Token, error) {
+	return jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("Unexpected signing method: %v", token.Header["alg"])
+		}
+		secret := os.Getenv("JWT_SECRET")
+		if secret == "" {
+			return nil, fmt.Errorf("JWT secret not configured")
+		}
+		return []byte(secret), nil
+	})
 }
