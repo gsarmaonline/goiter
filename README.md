@@ -7,7 +7,7 @@ A comprehensive boilerplate for building modern SaaS applications with authentic
 ### 🔐 Authentication & Authorization
 
 - **Google OAuth 2.0** integration for secure user authentication
-- **Session-based authentication** with secure cookie management
+- **JWT-based authentication** with secure token management
 - **Role-based access control** with granular permissions
 - **User profile management** with automatic profile and account creation
 
@@ -126,6 +126,9 @@ GOOGLE_CLIENT_ID=your_google_client_id
 GOOGLE_CLIENT_SECRET=your_google_client_secret
 GOOGLE_CALLBACK_URL=http://localhost:8080/auth/google/callback
 
+# JWT Configuration
+JWT_SECRET=your_jwt_secret
+
 # Stripe Configuration
 STRIPE_PUBLISHABLE_KEY=pk_test_your_stripe_publishable_key
 STRIPE_SECRET_KEY=sk_test_your_stripe_secret_key
@@ -242,6 +245,7 @@ The project includes a `render.yaml` file for easy deployment to Render:
 3. **Create New Web Service**: Connect your GitHub repository
 4. **Configure Environment Variables**:
    - `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`
+   - `JWT_SECRET`
    - `STRIPE_PUBLISHABLE_KEY`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`
    - Database credentials (auto-configured by Render)
 
@@ -295,7 +299,7 @@ Easily add new plans by modifying `backend/data/seed.json`:
 
 ## 🔒 Security Features
 
-- **Session-based authentication** with secure cookie settings
+- **JWT-based authentication** with secure token settings
 - **CORS configuration** for cross-origin requests
 - **Input validation** and sanitization
 - **SQL injection protection** via GORM

@@ -9,8 +9,10 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/gsarmaonline/goiter/config"
 	"github.com/gsarmaonline/goiter/core/models"
 )
@@ -63,20 +65,16 @@ func (h *Handler) handleShortCircuitLogin(c *gin.Context) {
 		return
 	}
 
-	// Set session cookie with more permissive settings for development
-	c.SetCookie(
-		"session",
-		someRandomNumber,
-		3600*24*7, // 7 days
-		"/",
-		"",
-		false, // Set to false for development
-		false, // Set to false for development
-	)
+	// Create JWT
+	token, err := h.createJWT(user.Email)
+	if err != nil {
+		c.JSON(500, gin.H{"error": "Failed to create token"})
+		return
+	}
 
 	c.JSON(200, gin.H{
 		"message": "Short circuit login successful",
-		"code":    someRandomNumber,
+		"token":   token,
 	})
 
 }
@@ -146,16 +144,12 @@ func (h *Handler) handleGoogleCallback(c *gin.Context) {
 		return
 	}
 
-	// Set session cookie with more permissive settings for development
-	c.SetCookie(
-		"session",
-		userInfo.ID,
-		3600*24*7, // 7 days
-		"/",
-		"",
-		false, // Set to false for development
-		false, // Set to false for development
-	)
+	// Create JWT
+	jwtToken, err := h.createJWT(user.Email)
+	if err != nil {
+		c.JSON(500, gin.H{"error": "Failed to create token"})
+		return
+	}
 
 	// Redirect to frontend with success parameter
 	frontendURL := os.Getenv("FRONTEND_URL")
@@ -163,7 +157,7 @@ func (h *Handler) handleGoogleCallback(c *gin.Context) {
 		c.JSON(500, gin.H{"error": "Frontend URL not configured"})
 		return
 	}
-	c.Redirect(http.StatusTemporaryRedirect, frontendURL+"?code=success")
+	c.Redirect(http.StatusTemporaryRedirect, frontendURL+"?token="+jwtToken)
 }
 
 func (h *Handler) handleGetUser(c *gin.Context) {
@@ -179,16 +173,6 @@ func (h *Handler) handleGetUser(c *gin.Context) {
 }
 
 func (h *Handler) handleLogout(c *gin.Context) {
-	// Clear the session cookie
-	c.SetCookie(
-		"session",
-		"",
-		-1, // Expire immediately
-		"/",
-		"",
-		false, // Set to false for development
-		false, // Set to false for development
-	)
 	c.JSON(200, gin.H{"message": "Logged out successfully"})
 }
 
@@ -247,4 +231,24 @@ func (h *Handler) getGoogleUserInfo(accessToken string) (*models.GoogleUserInfo,
 	}
 
 	return &userInfo, nil
+}
+
+func (h *Handler) createJWT(email string) (string, error) {
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256,
+		jwt.MapClaims{
+			"email": email,
+			"exp":   time.Now().Add(time.Hour * 24).Unix(),
+		})
+
+	secret := os.Getenv("JWT_SECRET")
+	if secret == "" {
+		return "", fmt.Errorf("JWT secret not configured")
+	}
+
+	tokenString, err := token.SignedString([]byte(secret))
+	if err != nil {
+		return "", err
+	}
+
+	return tokenString, nil
 }

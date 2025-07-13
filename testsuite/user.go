@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 )
 
@@ -38,7 +39,7 @@ func (c *GoiterClient) shortCircuitLogin(baseURL string) (token string, err erro
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK || err != nil {
-		err = fmt.Errorf("Failed to login: %s", err)
+		err = fmt.Errorf("Failed to login: %s", err.Error())
 		return
 	}
 	respBody, _ := io.ReadAll(resp.Body)
@@ -46,7 +47,7 @@ func (c *GoiterClient) shortCircuitLogin(baseURL string) (token string, err erro
 	if err = json.Unmarshal(respBody, &respData); err != nil {
 		return
 	}
-	token = respData["code"]
+	token = respData["token"]
 	return
 }
 
@@ -54,18 +55,18 @@ func (c *GoiterClient) shortCircuitLogin(baseURL string) (token string, err erro
 func (c *GoiterClient) Login() error {
 	fmt.Println("🔐 Goiter Client Login")
 	var (
-		sessionCookie string
-		err           error
+		jwtToken string
+		err      error
 	)
-	if sessionCookie, err = c.shortCircuitLogin(c.BaseURL); err != nil {
+	if jwtToken, err = c.shortCircuitLogin(c.BaseURL); err != nil {
 		return fmt.Errorf("failed to login: %v", err)
 	}
-	if sessionCookie == "" {
-		return fmt.Errorf("no session cookie provided")
+	if jwtToken == "" {
+		return fmt.Errorf("no jwt token provided")
 	}
 
 	// Set the session cookie
-	c.sessionID = sessionCookie
+	c.jwtToken = jwtToken
 
 	// Test the authentication by making a request to /me
 	fmt.Println("\n🔄 Testing authentication...")
@@ -80,7 +81,7 @@ func (c *GoiterClient) Login() error {
 
 // Logout clears the session
 func (c *GoiterClient) Logout() (err error) {
-	if c.sessionID == "" {
+	if c.jwtToken == "" {
 		return nil
 	}
 
@@ -88,13 +89,14 @@ func (c *GoiterClient) Logout() (err error) {
 		return err
 	}
 
-	c.sessionID = ""
+	c.jwtToken = ""
 	fmt.Println("Logged out successfully!")
 	return nil
 }
 
 func (c *GoiterClient) RunUserSuite() (err error) {
 	if err = c.Login(); err != nil {
+		log.Println("Login failed:", err)
 		return
 	}
 	return

@@ -1,6 +1,7 @@
 package testsuite
 
 import (
+	"fmt"
 	"log"
 
 	"github.com/gsarmaonline/goiter/core/models"
@@ -33,13 +34,15 @@ func (c *GoiterClient) GetProfile() (respBody map[string]interface{}, err error)
 }
 
 func (c *GoiterClient) RunProfileSuite() (err error) {
-	respBody := make(map[string]interface{})
+	log.Println("Running profile suite...")
 	if _, err = c.UpdateProfile(); err != nil {
-		return
+		return fmt.Errorf("UpdateProfile failed: %w", err)
 	}
-	if respBody, err = c.GetProfile(); err != nil {
-		return
+	log.Println("UpdateProfile successful")
+
+	if _, err = c.GetProfile(); err != nil {
+		return fmt.Errorf("GetProfile failed: %w", err)
 	}
-	log.Println(respBody)
+	log.Println("GetProfile successful")
 	return
 }

@@ -70,7 +70,7 @@ func (c *GoiterClient) RunProjectSuite() (err error) {
 	log.Println("Creating a new project...")
 	createdProject, err := c.CreateProject("Test Project", "This is a test project.")
 	if err != nil {
-		return fmt.Errorf("failed to create project: %v", err)
+		return fmt.Errorf("failed to create project: %w", err)
 	}
 	log.Println("Project created:", createdProject)
 	projectData := createdProject["data"].(map[string]interface{})
@@ -80,7 +80,7 @@ func (c *GoiterClient) RunProjectSuite() (err error) {
 	log.Println("Getting the project...")
 	project, err := c.GetProject(projectID)
 	if err != nil {
-		return fmt.Errorf("failed to get project: %v", err)
+		return fmt.Errorf("failed to get project: %w", err)
 	}
 	log.Println("Project details:", project)
 
@@ -88,7 +88,7 @@ func (c *GoiterClient) RunProjectSuite() (err error) {
 	log.Println("Updating the project...")
 	updatedProject, err := c.UpdateProject(projectID, "Updated Test Project", "This is an updated test project.")
 	if err != nil {
-		return fmt.Errorf("failed to update project: %v", err)
+		return fmt.Errorf("failed to update project: %w", err)
 	}
 	log.Println("Project updated:", updatedProject)
 
@@ -96,7 +96,7 @@ func (c *GoiterClient) RunProjectSuite() (err error) {
 	log.Println("Adding a member to the project...")
 	addedMember, err := c.AddProjectMember(projectID, "testuser@example.com", models.PermissionEditor)
 	if err != nil {
-		return fmt.Errorf("failed to add member to project: %v", err)
+		return fmt.Errorf("failed to add member to project: %w", err)
 	}
 	log.Println("Member added:", addedMember)
 	memberData := addedMember["data"].(map[string]interface{})
@@ -106,21 +106,21 @@ func (c *GoiterClient) RunProjectSuite() (err error) {
 	log.Println("Listing projects...")
 	projects, err := c.GetProjects()
 	if err != nil {
-		return fmt.Errorf("failed to list projects: %v", err)
+		return fmt.Errorf("failed to list projects: %w", err)
 	}
 	log.Println("Fetched projects:", projects)
 
 	// Remove a member from the project
 	log.Println("Removing a member from the project...")
 	if err := c.RemoveProjectMember(projectID, userID); err != nil {
-		return fmt.Errorf("failed to remove member from project: %v", err)
+		return fmt.Errorf("failed to remove member from project: %w", err)
 	}
 	log.Println("Member removed successfully.")
 
 	// Delete the project
 	log.Println("Deleting the project...")
 	if err := c.DeleteProject(projectID); err != nil {
-		return fmt.Errorf("failed to delete project: %v", err)
+		return fmt.Errorf("failed to delete project: %w", err)
 	}
 	log.Println("Project deleted successfully.")
 

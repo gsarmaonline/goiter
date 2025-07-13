@@ -32,7 +32,7 @@ func (c *GoiterClient) RunAccountSuite() (err error) {
 	log.Println("Getting the account...")
 	account, err := c.GetAccount()
 	if err != nil {
-		return fmt.Errorf("failed to get account: %v", err)
+		return fmt.Errorf("failed to get account: %w", err)
 	}
 	log.Println("Fetched account details:", account)
 
@@ -40,7 +40,7 @@ func (c *GoiterClient) RunAccountSuite() (err error) {
 	log.Println("Updating the account...")
 	updatedAccount, err := c.UpdateAccount("Updated Test Account", "This is an updated test account.")
 	if err != nil {
-		return fmt.Errorf("failed to update account: %v", err)
+		return fmt.Errorf("failed to update account: %w", err)
 	}
 	log.Println("Account updated:", updatedAccount)
 
@@ -48,7 +48,7 @@ func (c *GoiterClient) RunAccountSuite() (err error) {
 	log.Println("Getting the account again...")
 	account, err = c.GetAccount()
 	if err != nil {
-		return fmt.Errorf("failed to get account: %v", err)
+		return fmt.Errorf("failed to get account: %w", err)
 	}
 	log.Println("Fetched account details:", account)
 

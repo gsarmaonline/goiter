@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"os"
 	"time"
@@ -15,7 +16,7 @@ type GoiterClient struct {
 	BaseURL    string
 	httpClient *http.Client
 
-	sessionID string
+	jwtToken string
 }
 
 // NewGoiterClient creates a new client instance
@@ -41,8 +42,8 @@ func (c *GoiterClient) makeRequest(method, endpoint string,
 		reqBody *bytes.Reader
 		req     *http.Request
 	)
-	if c.sessionID == "" {
-		err = errors.New("session ID is not set")
+	if c.jwtToken == "" {
+		err = errors.New("jwt token is not set")
 		return
 	}
 	bodyb, _ := json.Marshal(body)
@@ -52,11 +53,8 @@ func (c *GoiterClient) makeRequest(method, endpoint string,
 		return
 	}
 
-	// Add session cookie
-	req.AddCookie(&http.Cookie{
-		Name:  "session",
-		Value: c.sessionID,
-	})
+	// Add Authorization header
+	req.Header.Set("Authorization", "Bearer "+c.jwtToken)
 
 	if body != nil {
 		req.Header.Set("Content-Type", "application/json")
@@ -101,9 +99,17 @@ func Run() {
 	baseURL := os.Getenv("GOITER_BASE_URL")
 	client := NewGoiterClient(baseURL)
 
-	client.RunUserSuite()
-	client.RunProfileSuite()
-	client.RunAccountSuite()
-	client.RunProjectSuite()
+	if err := client.RunUserSuite(); err != nil {
+		log.Fatalf("User suite failed: %v", err)
+	}
+	if err := client.RunProfileSuite(); err != nil {
+		log.Fatalf("Profile suite failed: %v", err)
+	}
+	if err := client.RunAccountSuite(); err != nil {
+		log.Fatalf("Account suite failed: %v", err)
+	}
+	if err := client.RunProjectSuite(); err != nil {
+		log.Fatalf("Project suite failed: %v", err)
+	}
 
 }

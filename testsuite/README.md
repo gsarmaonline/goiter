@@ -56,34 +56,26 @@ The authentication process requires manual steps due to the nature of OAuth with
 1. Run `go run client.go login`
 2. Open your browser and visit the provided Google OAuth URL
 3. Complete the Google sign-in process
-4. After successful login, you'll be redirected to the frontend
-5. Open your browser's Developer Tools (F12)
-6. Navigate to Application/Storage → Cookies
-7. Find the 'session' cookie and copy its value
-8. Paste the session cookie value in the terminal
+4. After successful login, you'll be redirected to the frontend with a `token` query parameter in the URL.
+5. Copy the value of the `token` parameter.
+6. Paste the token value in the terminal
 
-### Finding the Session Cookie
+### Finding the JWT Token
 
 **Chrome/Edge:**
-1. Press F12 to open Developer Tools
-2. Go to "Application" tab
-3. In the left sidebar, expand "Storage" → "Cookies"
-4. Click on your domain
-5. Find the row with "Name" = "session"
-6. Copy the "Value" column
+1. After logging in, look at the URL in the address bar.
+2. It should look something like `http://localhost:3000/?token=ey...`
+3. Copy the entire string after `token=`
 
 **Firefox:**
-1. Press F12 to open Developer Tools  
-2. Go to "Storage" tab
-3. Expand "Cookies" in the left sidebar
-4. Click on your domain
-5. Find the "session" cookie and copy its value
+1. After logging in, look at the URL in the address bar.
+2. It should look something like `http://localhost:3000/?token=ey...`
+3. Copy the entire string after `token=`
 
 **Safari:**
-1. Press Cmd+Option+I to open Developer Tools
-2. Go to "Storage" tab
-3. Select "Cookies" and your domain
-4. Find the "session" cookie and copy its value
+1. After logging in, look at the URL in the address bar.
+2. It should look something like `http://localhost:3000/?token=ey...`
+3. Copy the entire string after `token=`
 
 ## Examples
 
@@ -102,11 +94,9 @@ Please follow these steps to authenticate:
 
 1. Open your browser and visit: http://localhost:8080/auth/google
 2. Complete the Google OAuth flow
-3. After successful login, you'll be redirected to the frontend
-4. Open your browser's developer tools (F12)
-5. Go to Application/Storage -> Cookies
-6. Find the 'session' cookie and copy its value
-7. Paste the session cookie value here: your_session_cookie_here
+3. After successful login, you'll be redirected to the frontend with a `token` query parameter in the URL.
+4. Copy the value of the `token` parameter.
+5. Paste the token value here: your_jwt_token_here
 
 🔄 Testing authentication...
 ✅ Login successful! Welcome, John Doe (john@example.com)
@@ -129,8 +119,7 @@ Projects (2):
 
 ### Authentication Issues
 - Make sure the Goiter server is running and accessible
-- Verify you copied the entire session cookie value
-- Check that cookies are enabled in your browser
+- Verify you copied the entire JWT token value
 - Ensure the server's Google OAuth is properly configured
 
 ### Connection Issues  
@@ -141,7 +130,6 @@ Projects (2):
 ### Browser Issues
 - If the browser doesn't open automatically, manually visit the provided URL
 - Try using an incognito/private browsing window
-- Clear your browser cookies if you're having authentication issues
 
 ## API Coverage
 
@@ -164,7 +152,6 @@ To add new API endpoints:
 
 ## Notes
 
-- This client uses session-based authentication via cookies
-- Sessions typically last 7 days (as configured on the server)
-- The client doesn't persist sessions between runs - you'll need to re-authenticate each time
-- For production use, consider implementing session persistence to a local file 
+- This client uses JWT-based authentication.
+- The client doesn't persist tokens between runs - you'll need to re-authenticate each time
+- For production use, consider implementing token persistence to a local file 
