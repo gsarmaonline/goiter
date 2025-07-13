@@ -3,7 +3,6 @@ package models
 import (
 	"fmt"
 	"log"
-	"reflect"
 
 	"github.com/gsarmaonline/goiter/config"
 	"gorm.io/driver/postgres"
@@ -21,9 +20,11 @@ var (
 		&Profile{},
 		&Account{},
 		&Project{},
-		&ProjectPermission{},
+		&Permission{},
 		&RoleAccess{},
 		&Plan{},
+		&Feature{},
+		&PlanFeature{},
 	}
 )
 
@@ -95,16 +96,6 @@ func (dbMgr *DbManager) Validate() (err error) {
 	return
 }
 
-func (dbMgr *DbManager) AutoMigrate() (err error) {
-	for _, model := range Models {
-		log.Println(reflect.TypeOf(model), dbMgr.Db, "migrating")
-		if err = dbMgr.Db.Debug().AutoMigrate(model); err != nil {
-			return
-		}
-	}
-	return
-}
-
 func (dbMgr *DbManager) Setup() (err error) {
 
 	if dbMgr.dbType == config.SqliteDbType {
@@ -122,7 +113,7 @@ func (dbMgr *DbManager) Setup() (err error) {
 	if dbMgr.cfg.Mode == config.ModeDev {
 		dbMgr.DropModels()
 	}
-	if err = dbMgr.AutoMigrate(); err != nil {
+	if err = dbMgr.Db.Debug().AutoMigrate(Models...); err != nil {
 		return
 	}
 	return

@@ -18,19 +18,14 @@ type Account struct {
 	Name        string `json:"name" gorm:"not null"`
 	Description string `json:"description"`
 
-	Projects []Project `json:"projects" gorm:"foreignKey:AccountID"`
+	Projects []*Project `json:"projects" gorm:"foreignKey:AccountID"`
 
-	PlanID uint `json:"plan_id"`
-	Plan   Plan `json:"plan" gorm:"foreignKey:PlanID"`
+	PlanID uint  `json:"plan_id"`
+	Plan   *Plan `json:"plan" gorm:"foreignKey:PlanID"`
 
 	StripeCustomerID     string `json:"-"`
 	StripeSubscriptionID string `json:"-"`
 	SubscriptionStatus   string `json:"subscription_status" gorm:"default:'active'"`
-}
-
-// TableName specifies the table name for the Account model
-func (Account) TableName() string {
-	return "accounts"
 }
 
 // BeforeCreate is a GORM hook that ensures new accounts have the free plan

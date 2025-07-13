@@ -42,3 +42,8 @@ clean:
 	@echo "Cleaning database..."
 	@psql -U postgres -d postgres -c "DROP DATABASE goiter;"
 	@psql -U postgres -d postgres -c "CREATE DATABASE goiter;"
+
+
+test:
+	@echo "Running test suite..."
+	@go run testsuite/run/run.go

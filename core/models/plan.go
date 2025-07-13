@@ -24,44 +24,27 @@ type (
 		StripeProductID string `json:"stripe_product_id"`
 		StripePriceID   string `json:"stripe_price_id"`
 
-		Features []Feature `json:"features" gorm:"many2many:plan_features;"`
-		Accounts []Account `json:"accounts" gorm:"foreignKey:PlanID"`
+		Features []*Feature `json:"features" gorm:"many2many:plan_features;"`
+		Accounts []*Account `json:"accounts" gorm:"foreignKey:PlanID"`
 	}
 
 	// Feature represents a feature that can be included in plans
 	Feature struct {
 		BaseModelWithoutUser
 
-		Name        string `json:"name" gorm:"not null"`
-		Description string `json:"description"`
-		Limit       int    `json:"limit" gorm:"not null;default:-1"` // -1 means unlimited
-		Plans       []Plan `json:"plans" gorm:"many2many:plan_features;"`
+		Name        string  `json:"name" gorm:"not null"`
+		Description string  `json:"description"`
+		Limit       int     `json:"limit" gorm:"not null;default:-1"` // -1 means unlimited
+		Plans       []*Plan `json:"plans" gorm:"many2many:plan_features;"`
 	}
 
-	// PlanFeature represents the many-to-many relationship between plans and features
+	// PlanFeature is the explicit join table for the many-to-many relationship
+	// between Plan and Feature, ensuring correct table and constraint creation.
 	PlanFeature struct {
-		BaseModelWithoutUser
-
-		PlanID    string `json:"plan_id" gorm:"primaryKey"`
-		FeatureID string `json:"feature_id" gorm:"primaryKey"`
-		Limit     int    `json:"limit" gorm:"not null;default:-1"` // Override limit for this plan
+		PlanID    uint `gorm:"primaryKey"`
+		FeatureID uint `gorm:"primaryKey"`
 	}
 )
-
-// TableName specifies the table name for the Plan model
-func (Plan) TableName() string {
-	return "plans"
-}
-
-// TableName specifies the table name for the Feature model
-func (Feature) TableName() string {
-	return "features"
-}
-
-// TableName specifies the table name for the PlanFeature model
-func (PlanFeature) TableName() string {
-	return "plan_features"
-}
 
 func GetDefaultPlan(db *gorm.DB) (plan *Plan, err error) {
 	plan = &Plan{}

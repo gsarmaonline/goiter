@@ -2,8 +2,6 @@ package models
 
 import (
 	"time"
-
-	"gorm.io/gorm"
 )
 
 type (
@@ -13,11 +11,11 @@ type (
 		SetUserID(uint)
 	}
 	BaseModel struct {
-		gorm.Model
-
 		ID        uint      `json:"id" gorm:"primary_key"`
 		CreatedAt time.Time `json:"created_at" gorm:"not null;default:CURRENT_TIMESTAMP"`
 		UpdatedAt time.Time `json:"updated_at" gorm:"not null;default:CURRENT_TIMESTAMP"`
+
+		DeletedAt *time.Time `json:"deleted_at,omitempty" gorm:"index;default:NULL"`
 	}
 	BaseModelWithUser struct {
 		BaseModel

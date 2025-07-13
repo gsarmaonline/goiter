@@ -25,28 +25,24 @@ type (
 		Name        string `json:"name" gorm:"not null"`
 		Description string `json:"description"`
 
-		AccountID uint    `json:"account_id" gorm:"not null"`
-		Account   Account `json:"account" gorm:"foreignKey:AccountID"`
+		AccountID uint     `json:"account_id" gorm:"not null"`
+		Account   *Account `json:"account" gorm:"foreignKey:AccountID"`
 
-		Members []User `json:"members" gorm:"many2many:project_permissions;"`
+		Members []*User `json:"members" gorm:"many2many:permissions;"`
 	}
 
-	// ProjectPermission represents a user's permission level in a project
-	ProjectPermission struct {
+	// Permission represents a user's permission level in a project
+	Permission struct {
 		BaseModelWithUser
 
-		ProjectID uint    `json:"project_id" gorm:"not null"`
-		Project   Project `json:"project" gorm:"foreignKey:ProjectID"`
+		UserEmail string `json:"user_email"`
 
-		UserEmail string `json:"user_email" gorm:"not null"`
+		ProjectID uint     `json:"project_id" gorm:"not null"`
+		Project   *Project `json:"project" gorm:"foreignKey:ProjectID"`
 
 		Level PermissionLevel `json:"level" gorm:"not null;default:10"`
 	}
 )
-
-func (p *ProjectPermission) TableName() string {
-	return "project_permissions"
-}
 
 func (p *Project) BeforeCreate(tx *gorm.DB) (err error) {
 	// Set default role access for the project
@@ -63,13 +59,13 @@ func (p *Project) BeforeCreate(tx *gorm.DB) (err error) {
 // BeforeDelete is a GORM hook that handles cleanup before project deletion
 func (p *Project) BeforeDelete(tx *gorm.DB) error {
 	// Remove all project permissions
-	if err := tx.Exec("DELETE FROM project_permissions WHERE project_id = ?", p.ID).Error; err != nil {
+	if err := tx.Exec("DELETE FROM permissions WHERE project_id = ?", p.ID).Error; err != nil {
 		return err
 	}
 	return nil
 }
 
-func (p *ProjectPermission) BeforeCreate(tx *gorm.DB) (err error) {
+func (p *Permission) BeforeCreate(tx *gorm.DB) (err error) {
 	if p.UserID != 0 {
 		return
 	}
@@ -85,7 +81,7 @@ func (p *ProjectPermission) BeforeCreate(tx *gorm.DB) (err error) {
 			Email:      p.UserEmail,
 			UserStatus: InactiveUser,
 
-			CreatedFrom: "project_permission",
+			CreatedFrom: "permission",
 		}
 		if err = tx.Create(user).Error; err != nil {
 			return

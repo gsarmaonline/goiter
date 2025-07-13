@@ -54,7 +54,7 @@ func CanAccessResource(db *gorm.DB,
 ) bool {
 	// Get User's level in the project
 	var (
-		projectPermission ProjectPermission
+		projectPermission Permission
 	)
 	db.Where("user_id = ?", user.ID).First(&projectPermission)
 

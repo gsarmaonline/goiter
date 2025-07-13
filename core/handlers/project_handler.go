@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"log"
 	"net/http"
 	"strconv"
 
@@ -22,7 +23,7 @@ func NewProjectHandler(handler *Handler) *ProjectHandler {
 func (h *ProjectHandler) CheckProjectPermission(c *gin.Context, projectID uint, requiredLevel models.PermissionLevel) bool {
 	user := h.handler.GetUserFromContext(c)
 
-	var permission models.ProjectPermission
+	var permission models.Permission
 
 	// Check if user has the required permission
 	err := h.handler.UserScopedDB(c).Where("project_id = ?", projectID).First(&permission).Error
@@ -56,7 +57,7 @@ func (h *ProjectHandler) ListProjects(c *gin.Context) {
 	var projects []models.Project
 
 	// Get projects where user is owner or member
-	if err := h.handler.UserScopedDB(c).Where("id IN (SELECT project_id FROM project_permissions WHERE user_id = ?)", userID).
+	if err := h.handler.UserScopedDB(c).Where("id IN (SELECT project_id FROM permissions WHERE user_id = ?)", userID).
 		Preload("Members").
 		Find(&projects).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to list projects"})
@@ -104,12 +105,13 @@ func (h *ProjectHandler) CreateProject(c *gin.Context) {
 	}
 
 	// Create owner permission
-	permission := models.ProjectPermission{
+	permission := models.Permission{
 		ProjectID: project.ID,
 		Level:     models.PermissionOwner,
 	}
 	permission.UserID = user.ID
 	if err := h.handler.CreateWithUser(c, &permission); err != nil {
+		log.Println("Failed to create project permission:", err)
 		tx.Rollback()
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to set project permissions"})
 		return
@@ -241,7 +243,7 @@ func (h *ProjectHandler) AddProjectMember(c *gin.Context) {
 	}
 
 	// Create the permission
-	permission := models.ProjectPermission{
+	permission := models.Permission{
 		ProjectID: uint(projectID),
 		UserEmail: input.UserEmail,
 		Level:     input.Level,
@@ -283,7 +285,7 @@ func (h *ProjectHandler) RemoveProjectMember(c *gin.Context) {
 		return
 	}
 
-	if err := h.handler.UserScopedDB(c).Where("project_id = ?", projectID).Delete(&models.ProjectPermission{}).Error; err != nil {
+	if err := h.handler.UserScopedDB(c).Where("project_id = ?", projectID).Delete(&models.Permission{}).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to remove project member"})
 		return
 	}
