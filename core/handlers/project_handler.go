@@ -266,13 +266,17 @@ func (h *ProjectHandler) RemoveProjectMember(c *gin.Context) {
 		return
 	}
 
+	memberID, err := strconv.ParseUint(c.Param("user_id"), 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user ID"})
+		return
+	}
+
 	// Only owner or admin can remove members
 	if !h.CheckProjectPermission(c, uint(projectID), models.PermissionAdmin) {
 		c.JSON(http.StatusForbidden, gin.H{"error": "You don't have permission to remove members from this project"})
 		return
 	}
-
-	userID := h.handler.GetUserFromContext(c).ID
 
 	// Don't allow removing the owner
 	var project models.Project
@@ -280,7 +284,7 @@ func (h *ProjectHandler) RemoveProjectMember(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Project not found"})
 		return
 	}
-	if project.UserID == userID {
+	if uint(memberID) == project.UserID {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Cannot remove the project owner"})
 		return
 	}

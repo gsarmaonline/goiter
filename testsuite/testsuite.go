@@ -61,16 +61,18 @@ func (c *GoiterClient) makeRequest(method, endpoint string,
 	}
 
 	if resp, err = c.httpClient.Do(req); err != nil {
+		log.Println(err)
 		return
 	}
 	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK && err == nil {
-		err = fmt.Errorf("request failed with status: %d", resp.StatusCode)
-		return
-	}
 
 	respBody = make(map[string]interface{})
 	respB, err := io.ReadAll(resp.Body)
+
+	if resp.StatusCode != http.StatusOK && err == nil {
+		err = fmt.Errorf("request failed with status: %d with body", resp.StatusCode, string(respB))
+		return
+	}
 	if err = json.Unmarshal(respB, &respBody); err != nil {
 		return
 	}
