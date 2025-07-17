@@ -6,7 +6,6 @@ A comprehensive boilerplate for building modern SaaS applications with authentic
 
 ### 🔐 Authentication & Authorization
 
-- **Google OAuth 2.0** integration for secure user authentication
 - **JWT-based authentication** with secure token management
 - **Role-based access control** with granular permissions
 - **User profile management** with automatic profile and account creation
@@ -39,9 +38,9 @@ A comprehensive boilerplate for building modern SaaS applications with authentic
 ### Backend
 
 - **Go 1.23+** with Gin web framework
-- **PostgreSQL** database with GORM ORM
+- **PostgreSQL/SQLite** database with GORM ORM
 - **Stripe** for payment processing
-- **Google OAuth 2.0** for authentication
+- **JWT** for authentication
 - **Air** for hot reloading during development
 
 ### Frontend (Coming Soon)
@@ -61,21 +60,52 @@ A comprehensive boilerplate for building modern SaaS applications with authentic
 
 ```
 goiter/
-├── backend/                    # Go backend application
-│   ├── core/                  # Core application logic
-│   │   ├── handlers/          # HTTP request handlers
-│   │   ├── middleware/        # Authentication & authorization middleware
-│   │   ├── models/           # Database models and business logic
-│   │   ├── services/         # External service integrations
-│   │   └── server.go         # Server configuration
-│   ├── data/                 # Seed data and migrations
-│   ├── main.go               # Application entry point
-│   └── tmp/                  # Temporary files (Air hot reload)
-├── client/                   # Go client SDK
-│   ├── client.go             # Client implementation
-│   └── README.md             # Client documentation
-├── Makefile                  # Development workflow commands
-└── render.yaml              # Deployment configuration
+├── core/                      # Core application logic
+│   ├── handlers/              # HTTP request handlers
+│   │   ├── account_handler.go # Account management endpoints
+│   │   ├── auth_handler.go    # Authentication endpoints
+│   │   ├── billing_handler.go # Billing and subscription endpoints
+│   │   ├── handler.go         # Base handler utilities
+│   │   ├── plan_handler.go    # Plan management endpoints
+│   │   ├── profile_handler.go # User profile endpoints
+│   │   └── project_handler.go # Project management endpoints
+│   ├── middleware/            # Authentication & authorization middleware
+│   │   ├── authentication_middleware.go # JWT authentication
+│   │   ├── authorisation_middleware.go  # Role-based authorization
+│   │   └── middleware.go      # Base middleware utilities
+│   ├── models/               # Database models and business logic
+│   │   ├── account.go        # Account model
+│   │   ├── authorisation.go  # Authorization model
+│   │   ├── base_model.go     # Base model structure
+│   │   ├── db.go            # Database connection
+│   │   ├── plan.go          # Subscription plan model
+│   │   ├── profile.go       # User profile model
+│   │   ├── project.go       # Project model
+│   │   ├── seed.go          # Database seeding
+│   │   └── user.go          # User model
+│   ├── services/             # External service integrations
+│   │   └── stripe_service.go # Stripe payment integration
+│   └── server.go             # Server configuration
+├── config/                   # Configuration management
+│   └── config.go            # Application configuration
+├── data/                     # Seed data and migrations
+│   └── seed.json            # Initial data seeding
+├── testsuite/               # Test suite
+│   ├── run/                 # Test runner
+│   │   └── run.go          # Test execution
+│   ├── account.go          # Account tests
+│   ├── profile.go          # Profile tests
+│   ├── project.go          # Project tests
+│   ├── server.go           # Test server setup
+│   ├── testsuite.go        # Test suite utilities
+│   ├── user.go             # User tests
+│   └── README.md           # Test documentation
+├── main.go                  # Application entry point
+├── Makefile                 # Development workflow commands
+├── render.yaml              # Deployment configuration
+├── go.mod                   # Go module definition
+├── go.sum                   # Go dependency checksums
+└── gorm.db                  # SQLite database file (development)
 ```
 
 ## 🚦 Quick Start
@@ -83,9 +113,8 @@ goiter/
 ### Prerequisites
 
 - Go 1.23 or higher
-- PostgreSQL 13 or higher
+- PostgreSQL 13 or higher (or SQLite for development)
 - Stripe account (for billing features)
-- Google OAuth credentials
 
 ### 1. Clone the Repository
 
@@ -106,25 +135,23 @@ psql -U postgres -c "CREATE DATABASE goiter;"
 
 ### 3. Environment Configuration
 
-Create a `.env` file in the `backend/` directory:
+Create a `.env` file in the root directory:
 
 ```env
-# Database Configuration
+# Database Configuration (PostgreSQL)
 DB_HOST=localhost
 DB_PORT=5432
 DB_USER=postgres
 DB_PASSWORD=your_password
 DB_NAME=goiter
-DB_SSLMODE=disable
+
+# Or use SQLite for development (comment out PostgreSQL config above)
+# DB_NAME=gorm.db
 
 # Server Configuration
 PORT=8080
-FRONTEND_URL=http://localhost:3000
-
-# Google OAuth Configuration
-GOOGLE_CLIENT_ID=your_google_client_id
-GOOGLE_CLIENT_SECRET=your_google_client_secret
-GOOGLE_CALLBACK_URL=http://localhost:8080/auth/google/callback
+MODE=dev
+GIN_MODE=debug
 
 # JWT Configuration
 JWT_SECRET=your_jwt_secret
@@ -155,10 +182,10 @@ make start-backend-no-air
 
 ```bash
 # Test server connectivity
-go run client/client.go ping
+curl http://localhost:8080/ping
 
-# Test authentication flow
-go run client/client.go login
+# Run the test suite
+make test
 ```
 
 ## 🔧 Development Workflow
@@ -181,6 +208,9 @@ make clean-air
 # Database operations
 make db          # Connect to database
 make clean       # Reset database
+
+# Testing
+make test        # Run test suite
 ```
 
 ### Database Management
@@ -202,8 +232,8 @@ make clean
 
 ### Authentication Endpoints
 
-- `GET /auth/google` - Initiate Google OAuth flow
-- `GET /auth/google/callback` - Handle OAuth callback
+- `POST /login` - User login with credentials
+- `POST /register` - User registration
 - `GET /me` - Get current user information
 - `POST /logout` - Logout current user
 
@@ -244,7 +274,6 @@ The project includes a `render.yaml` file for easy deployment to Render:
 2. **Create Render Account**: Sign up at [render.com](https://render.com)
 3. **Create New Web Service**: Connect your GitHub repository
 4. **Configure Environment Variables**:
-   - `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`
    - `JWT_SECRET`
    - `STRIPE_PUBLISHABLE_KEY`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`
    - Database credentials (auto-configured by Render)
@@ -277,7 +306,7 @@ The boilerplate includes a flexible plan system:
 
 ### Custom Plans
 
-Easily add new plans by modifying `backend/data/seed.json`:
+Easily add new plans by modifying `data/seed.json`:
 
 ```json
 {
@@ -309,14 +338,16 @@ Easily add new plans by modifying `backend/data/seed.json`:
 ## 🧪 Testing
 
 ```bash
-# Run tests
-go test ./...
+# Run the test suite
+make test
 
-# Run tests with coverage
-go test -cover ./...
+# Run tests manually
+go run testsuite/run/run.go
 
-# Run specific test
-go test ./core/handlers -v
+# Run individual test files
+go run testsuite/user.go
+go run testsuite/project.go
+go run testsuite/account.go
 ```
 
 ## 📈 Monitoring & Logging
@@ -359,7 +390,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - [Gin Framework](https://gin-gonic.com/) for the excellent web framework
 - [GORM](https://gorm.io/) for the powerful ORM
 - [Stripe](https://stripe.com/) for payment processing
-- [Google OAuth](https://developers.google.com/identity/protocols/oauth2) for authentication
+- [JWT](https://jwt.io/) for authentication
 - [Render](https://render.com/) for deployment platform
 
 ---
