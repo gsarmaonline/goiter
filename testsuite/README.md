@@ -1,157 +1,197 @@
-# Goiter CLI Client
+# Goiter Authorization Test Suite
 
-A command-line client for accessing the Goiter server API with Google OAuth authentication.
+This test suite provides comprehensive testing for authorization permissions in the Goiter application.
 
-## Features
+## Test Structure
 
-- 🔐 Google OAuth authentication  
-- 👤 User profile management
-- 📋 Project listing and management
-- 🏢 Account information retrieval
-- 🏓 Server connectivity testing
+### 1. Basic Functional Tests
+- **User Suite**: Tests user authentication and profile management
+- **Profile Suite**: Tests user profile operations
+- **Account Suite**: Tests account management
+- **Project Suite**: Tests basic project CRUD operations
 
-## Installation
+### 2. Authorization Tests
+- **Project Permission Tests**: Tests permission levels for project operations
+- **Unauthorized Access Tests**: Tests access without proper authentication
+- **Resource Permission Tests**: Tests permissions on different resource types
+- **Cross-Project Permission Tests**: Tests that users can't access resources across projects
+- **Permission Inheritance Tests**: Tests that higher permission levels include lower-level permissions
 
-1. Make sure you have Go installed
-2. Navigate to the client directory:
-   ```bash
-   cd client
-   ```
+## Running Tests
 
-## Usage
-
-### Basic Commands
-
+### Run All Tests
 ```bash
-# Test server connectivity
-go run client.go ping
-
-# Login with Google OAuth  
-go run client.go login
-
-# Get current user information
-go run client.go user
-
-# List user's projects
-go run client.go projects  
-
-# Get account information
-go run client.go account
+make test
 ```
 
-### Environment Variables
-
-Set the following environment variable if your server is running on a different URL:
-
+### Run with Environment Variables
 ```bash
-export GOITER_BASE_URL="http://localhost:8080"  # Default
-# Or for production:
-export GOITER_BASE_URL="https://your-goiter-server.com"
+# Enable verbose output
+GOITER_TEST_VERBOSE=true make test
+
+# Disable authorization tests (only run basic functional tests)
+GOITER_TEST_AUTH=false make test
+
+# Use custom server URL
+GOITER_BASE_URL=http://localhost:8080 make test
 ```
 
-## Authentication Process
+### Run Specific Test Categories
 
-The authentication process requires manual steps due to the nature of OAuth with CLI applications:
-
-1. Run `go run client.go login`
-2. Open your browser and visit the provided Google OAuth URL
-3. Complete the Google sign-in process
-4. After successful login, you'll be redirected to the frontend with a `token` query parameter in the URL.
-5. Copy the value of the `token` parameter.
-6. Paste the token value in the terminal
-
-### Finding the JWT Token
-
-**Chrome/Edge:**
-1. After logging in, look at the URL in the address bar.
-2. It should look something like `http://localhost:3000/?token=ey...`
-3. Copy the entire string after `token=`
-
-**Firefox:**
-1. After logging in, look at the URL in the address bar.
-2. It should look something like `http://localhost:3000/?token=ey...`
-3. Copy the entire string after `token=`
-
-**Safari:**
-1. After logging in, look at the URL in the address bar.
-2. It should look something like `http://localhost:3000/?token=ey...`
-3. Copy the entire string after `token=`
-
-## Examples
-
-### Test Server Connection
+#### Basic Functional Tests Only
 ```bash
-$ go run client.go ping
-Server is running!
+GOITER_TEST_AUTH=false go run testsuite/run/run.go
 ```
 
-### Login and Get User Info
-```bash
-$ go run client.go user
-🔐 Goiter Client Login
-======================
-Please follow these steps to authenticate:
+#### Authorization Tests Only
+Create a simple runner script:
+```go
+// auth_test_runner.go
+package main
 
-1. Open your browser and visit: http://localhost:8080/auth/google
-2. Complete the Google OAuth flow
-3. After successful login, you'll be redirected to the frontend with a `token` query parameter in the URL.
-4. Copy the value of the `token` parameter.
-5. Paste the token value here: your_jwt_token_here
+import (
+    "github.com/gsarmaonline/goiter/testsuite"
+)
 
-🔄 Testing authentication...
-✅ Login successful! Welcome, John Doe (john@example.com)
-User: John Doe (john@example.com)
+func main() {
+    go testsuite.StartServer()
+    time.Sleep(2 * time.Second)
+    
+    client := testsuite.NewAuthTestClient("http://localhost:8090")
+    
+    // Run only authorization tests
+    if err := client.RunProjectPermissionTests(); err != nil {
+        log.Fatalf("Project permission tests failed: %v", err)
+    }
+    
+    if err := client.TestResourcePermissions(); err != nil {
+        log.Fatalf("Resource permission tests failed: %v", err)
+    }
+    
+    log.Println("Authorization tests completed!")
+}
 ```
 
-### List Projects
-```bash
-$ go run client.go projects
-🔐 Goiter Client Login
-======================
-[... authentication process ...]
-✅ Login successful! Welcome, John Doe (john@example.com)
-Projects (2):
-- My First Project: A sample project for testing
-- Work Dashboard: Internal company dashboard
+## Test Configuration
+
+Environment variables:
+- `GOITER_BASE_URL`: Server URL (default: `http://localhost:8090`)
+- `GOITER_TEST_AUTH`: Enable authorization tests (default: `true`)
+- `GOITER_TEST_VERBOSE`: Enable verbose output (default: `false`)
+
+## Permission Levels Tested
+
+1. **Owner (20)**: Full access to all resources
+2. **Admin (19)**: Can manage resources and some project settings
+3. **Editor (18)**: Can edit resources
+4. **Viewer (17)**: Can only view resources
+
+## Test Coverage
+
+### Project Operations
+- ✅ Read project details
+- ✅ Update project details
+- ✅ Delete project
+- ✅ List projects
+
+### Project Member Management
+- ✅ Add project members
+- ✅ Remove project members
+- ✅ View project members
+
+### Resource Access Control
+- ✅ Generic resource permissions (`*`)
+- ✅ Specific resource permissions (`project`, `project_member`)
+- ✅ Action-based permissions (`read`, `create`, `update`, `delete`)
+
+### Security Tests
+- ✅ Unauthorized access prevention
+- ✅ Cross-project access prevention
+- ✅ Permission inheritance validation
+
+## Test Users
+
+The test suite automatically creates test users with the following pattern:
+- `owner@example.com` - Project owner
+- `user_project_{level}_{action}@example.com` - Users with specific permission levels
+- `user_resource_{type}_{action}_{level}@example.com` - Users for resource-specific tests
+
+## Expected Test Results
+
+### Successful Tests
+- All permission levels can read resources they have access to
+- Higher permission levels can perform actions of lower levels
+- Users cannot access resources in projects they're not members of
+- Unauthorized requests return 401 status
+- Insufficient permissions return 403 status
+
+### Test Failures
+Tests will fail if:
+- Permission levels don't match expected behavior
+- Users can access resources they shouldn't have access to
+- Authorization middleware is not properly configured
+- Database permissions are not correctly set up
+
+## Debugging Test Failures
+
+1. **Enable verbose output**: Set `GOITER_TEST_VERBOSE=true`
+2. **Check server logs**: Look for authentication/authorization errors
+3. **Verify database state**: Check that permissions are correctly stored
+4. **Run individual tests**: Isolate specific failing test scenarios
+
+## Adding New Tests
+
+### 1. Add Permission Test Scenarios
+Add new scenarios to `permission_tests.go`:
+```go
+var NewResourcePermissionTests = []PermissionTestScenario{
+    {
+        Name:           "Test name",
+        UserLevel:      models.PermissionEditor,
+        Action:         "create",
+        Method:         "POST",
+        Endpoint:       "/api/resource",
+        Body:           map[string]string{"field": "value"},
+        ExpectedStatus: 200,
+        Description:    "Test description",
+    },
+}
 ```
 
-## Troubleshooting
+### 2. Add Resource-Specific Tests
+Add new resource tests to `resource_permission_tests.go`:
+```go
+var NewResourceTests = []ResourcePermissionTest{
+    {
+        ResourceType: "new_resource",
+        Action:       models.CreateAction,
+        MinLevel:     models.PermissionEditor,
+        Description:  "Creating new resources",
+        ShouldSucceed: map[models.PermissionLevel]bool{
+            models.PermissionOwner:  true,
+            models.PermissionAdmin:  true,
+            models.PermissionEditor: true,
+            models.PermissionViewer: false,
+        },
+    },
+}
+```
 
-### Authentication Issues
-- Make sure the Goiter server is running and accessible
-- Verify you copied the entire JWT token value
-- Ensure the server's Google OAuth is properly configured
+### 3. Update Test Suite
+Add your new test function to `testsuite.go`:
+```go
+if err := authClient.RunNewResourceTests(); err != nil {
+    log.Fatalf("❌ New resource tests failed: %v", err)
+}
+```
 
-### Connection Issues  
-- Verify the server URL with `go run client.go ping`
-- Check that the GOITER_BASE_URL environment variable is set correctly
-- Ensure there are no firewall issues blocking the connection
+## Architecture
 
-### Browser Issues
-- If the browser doesn't open automatically, manually visit the provided URL
-- Try using an incognito/private browsing window
+The test suite uses:
+- **HTTP client testing**: Real HTTP requests to test endpoints
+- **JWT authentication**: Proper token-based authentication
+- **Test isolation**: Each test creates its own users and projects
+- **Cleanup**: Automatic cleanup of test data
+- **Comprehensive coverage**: Tests all permission levels and actions
 
-## API Coverage
-
-The client currently supports these Goiter API endpoints:
-
-- `GET /ping` - Server health check
-- `GET /me` - Current user information  
-- `GET /projects` - List user's projects
-- `GET /account` - Get account information
-- `POST /logout` - Logout (clears session)
-
-## Contributing
-
-To add new API endpoints:
-
-1. Add the corresponding struct types if needed
-2. Implement a new method in the `GoiterClient` struct
-3. Add a new command case in the `main()` function
-4. Update this README with the new functionality
-
-## Notes
-
-- This client uses JWT-based authentication.
-- The client doesn't persist tokens between runs - you'll need to re-authenticate each time
-- For production use, consider implementing token persistence to a local file 
+This ensures that your authorization system works correctly in real-world scenarios.

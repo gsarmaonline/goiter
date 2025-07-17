@@ -44,29 +44,37 @@ func (h *Handler) handleShortCircuitLogin(c *gin.Context) {
 		return
 	}
 
-	someRandomNumber := strconv.Itoa(rand.Int())
 	// Create or update user in database
-	user := models.User{
-		GoogleID:   someRandomNumber,
-		Email:      req.Email,
-		Name:       fmt.Sprintf("User %s", req.Email),
-		UserStatus: models.ActiveUser,
-	}
 	modUser := &models.User{}
 
-	if result := h.db.Where(models.User{Email: req.Email}).FirstOrCreate(&modUser); result.Error != nil {
-		c.JSON(500, gin.H{"error": "Failed to save user"})
-		return
-	}
-	user.ID = modUser.ID
+	// Try to find existing user by email
+	if result := h.db.Where(models.User{Email: req.Email}).First(&modUser); result.Error != nil {
+		// User doesn't exist, create new one
+		someRandomNumber := strconv.Itoa(rand.Int())
+		user := models.User{
+			GoogleID:    someRandomNumber,
+			Email:       req.Email,
+			Name:        fmt.Sprintf("User %s", req.Email),
+			UserStatus:  models.ActiveUser,
+			CreatedFrom: "login",
+		}
 
-	if err := h.db.Save(&user).Error; err != nil {
-		c.JSON(500, gin.H{"error": "Failed to update user status"})
-		return
+		if err := h.db.Create(&user).Error; err != nil {
+			c.JSON(500, gin.H{"error": "Failed to create user"})
+			return
+		}
+		modUser = &user
+	} else {
+		// User exists, just update status to active
+		modUser.UserStatus = models.ActiveUser
+		if err := h.db.Save(&modUser).Error; err != nil {
+			c.JSON(500, gin.H{"error": "Failed to update user status"})
+			return
+		}
 	}
 
 	// Create JWT
-	token, err := h.createJWT(user.Email)
+	token, err := h.createJWT(modUser.Email)
 	if err != nil {
 		c.JSON(500, gin.H{"error": "Failed to create token"})
 		return
@@ -163,13 +171,15 @@ func (h *Handler) handleGoogleCallback(c *gin.Context) {
 func (h *Handler) handleGetUser(c *gin.Context) {
 	user := h.GetUserFromContext(c)
 
-	c.JSON(200, gin.H{
+	userData := gin.H{
 		"id":      user.ID,
 		"email":   user.Email,
 		"name":    user.Name,
 		"picture": user.Picture,
 		"profile": user.Profile,
-	})
+	}
+
+	h.WriteSuccess(c, userData)
 }
 
 func (h *Handler) handleLogout(c *gin.Context) {

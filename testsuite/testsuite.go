@@ -8,7 +8,6 @@ import (
 	"io"
 	"log"
 	"net/http"
-	"os"
 	"time"
 )
 
@@ -96,22 +95,6 @@ func (c *GoiterClient) Ping() error {
 }
 
 func Run() {
-
-	// Initialize client
-	baseURL := os.Getenv("GOITER_BASE_URL")
-	client := NewGoiterClient(baseURL)
-
-	if err := client.RunUserSuite(); err != nil {
-		log.Fatalf("User suite failed: %v", err)
-	}
-	if err := client.RunProfileSuite(); err != nil {
-		log.Fatalf("Profile suite failed: %v", err)
-	}
-	if err := client.RunAccountSuite(); err != nil {
-		log.Fatalf("Account suite failed: %v", err)
-	}
-	if err := client.RunProjectSuite(); err != nil {
-		log.Fatalf("Project suite failed: %v", err)
-	}
-
+	// Use the new test configuration system
+	RunTestSuite()
 }

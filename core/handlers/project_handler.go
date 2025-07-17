@@ -19,38 +19,6 @@ func NewProjectHandler(handler *Handler) *ProjectHandler {
 	return &ProjectHandler{handler: handler, db: handler.db}
 }
 
-// CheckProjectPermission checks if a user has the required permission level for a project
-func (h *ProjectHandler) CheckProjectPermission(c *gin.Context, projectID uint, requiredLevel models.PermissionLevel) bool {
-	user := h.handler.GetUserFromContext(c)
-
-	var permission models.Permission
-
-	// Check if user has the required permission
-	err := h.handler.UserScopedDB(c).Where("project_id = ?", projectID).First(&permission).Error
-	if err != nil {
-		// If no permission record found, check if user is the owner
-		var project models.Project
-		if err := h.db.First(&project, projectID).Error; err != nil {
-			return false
-		}
-		return project.UserID == user.ID
-	}
-
-	// Check permission level
-	switch requiredLevel {
-	case models.PermissionOwner:
-		return permission.Level == models.PermissionOwner
-	case models.PermissionAdmin:
-		return permission.Level == models.PermissionOwner || permission.Level == models.PermissionAdmin
-	case models.PermissionEditor:
-		return permission.Level == models.PermissionOwner || permission.Level == models.PermissionAdmin || permission.Level == models.PermissionEditor
-	case models.PermissionViewer:
-		return true // Everyone can view
-	default:
-		return false
-	}
-}
-
 // ListProjects retrieves all projects for the current user
 func (h *ProjectHandler) ListProjects(c *gin.Context) {
 	userID := h.handler.GetUserFromContext(c).ID
@@ -135,12 +103,6 @@ func (h *ProjectHandler) GetProject(c *gin.Context) {
 		return
 	}
 
-	// Check if user has at least viewer permission
-	if !h.CheckProjectPermission(c, uint(projectID), models.PermissionViewer) {
-		c.JSON(http.StatusForbidden, gin.H{"error": "You don't have permission to view this project"})
-		return
-	}
-
 	var project models.Project
 	if err := h.db.Preload("User").Preload("Members").First(&project, projectID).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Project not found"})
@@ -155,12 +117,6 @@ func (h *ProjectHandler) UpdateProject(c *gin.Context) {
 	projectID, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid project ID"})
-		return
-	}
-
-	// Check if user has admin or owner permission
-	if !h.CheckProjectPermission(c, uint(projectID), models.PermissionAdmin) {
-		c.JSON(http.StatusForbidden, gin.H{"error": "You don't have permission to update this project"})
 		return
 	}
 
@@ -204,12 +160,6 @@ func (h *ProjectHandler) DeleteProject(c *gin.Context) {
 		return
 	}
 
-	// Only owner can delete the project
-	if !h.CheckProjectPermission(c, uint(projectID), models.PermissionOwner) {
-		c.JSON(http.StatusForbidden, gin.H{"error": "Only the project owner can delete the project"})
-		return
-	}
-
 	if err := h.db.Delete(&models.Project{}, projectID).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete project"})
 		return
@@ -223,12 +173,6 @@ func (h *ProjectHandler) AddProjectMember(c *gin.Context) {
 	projectID, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid project ID"})
-		return
-	}
-
-	// Only owner or admin can add members
-	if !h.CheckProjectPermission(c, uint(projectID), models.PermissionAdmin) {
-		c.JSON(http.StatusForbidden, gin.H{"error": "You don't have permission to add members to this project"})
 		return
 	}
 
@@ -269,12 +213,6 @@ func (h *ProjectHandler) RemoveProjectMember(c *gin.Context) {
 	memberID, err := strconv.ParseUint(c.Param("user_id"), 10, 32)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user ID"})
-		return
-	}
-
-	// Only owner or admin can remove members
-	if !h.CheckProjectPermission(c, uint(projectID), models.PermissionAdmin) {
-		c.JSON(http.StatusForbidden, gin.H{"error": "You don't have permission to remove members from this project"})
 		return
 	}
 
