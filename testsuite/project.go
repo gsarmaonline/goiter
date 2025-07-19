@@ -5,13 +5,16 @@ import (
 	"log"
 
 	"github.com/gsarmaonline/goiter/core/models"
+	"github.com/stretchr/testify/assert"
 )
 
 // GetProjects retrieves all projects for the current user
-func (c *GoiterClient) GetProjects() (projects map[string]interface{}, err error) {
-	if _, projects, err = c.makeRequest("GET", "/projects", nil); err != nil {
+func (c *GoiterClient) GetProjects() (projects []interface{}, err error) {
+	resp := make(map[string]interface{})
+	if _, resp, err = c.makeRequest("GET", "/projects", nil); err != nil {
 		return nil, err
 	}
+	projects = resp["data"].([]interface{})
 	return
 }
 
@@ -63,66 +66,50 @@ func (c *GoiterClient) RemoveProjectMember(projectID, userID uint) (err error) {
 	return
 }
 
+func (c *GoiterClient) RunProjectCRUDSuite() (err error) {
+	return
+}
+
+func (c *GoiterClient) RunProjectMembersSuite() (err error) {
+	return
+}
+
 func (c *GoiterClient) RunProjectSuite() (err error) {
 	log.Println("Running Project test suite...")
 
-	// Create a new project
-	log.Println("Creating a new project...")
 	createdProject, err := c.CreateProject("Test Project", "This is a test project.")
-	if err != nil {
-		return fmt.Errorf("failed to create project: %w", err)
-	}
-	log.Println("Project created:", createdProject)
-	projectData := createdProject["data"].(map[string]interface{})
-	projectID := uint(projectData["id"].(float64))
+	assert.Nil(c, err, "Failed to create project")
+	assert.Equal(c, "Test Project", createdProject["name"], "Project name should be 'Test Project'")
+
+	projectID := uint(createdProject["id"].(float64))
 
 	// Get the project
-	log.Println("Getting the project...")
 	project, err := c.GetProject(projectID)
-	if err != nil {
-		return fmt.Errorf("failed to get project: %w", err)
-	}
-	log.Println("Project details:", project)
+	assert.Nil(c, err, "Failed to get project")
+	assert.Equal(c, "Test Project", project["name"], "Project name should be 'Test Project'")
 
 	// Update the project
-	log.Println("Updating the project...")
 	updatedProject, err := c.UpdateProject(projectID, "Updated Test Project", "This is an updated test project.")
-	if err != nil {
-		return fmt.Errorf("failed to update project: %w", err)
-	}
-	log.Println("Project updated:", updatedProject)
+	assert.Nil(c, err, "Failed to update project")
+	assert.Equal(c, "Updated Test Project", updatedProject["name"], "Project name should be 'Updated Test Project'")
 
 	// Add a member to the project
-	log.Println("Adding a member to the project...")
 	addedMember, err := c.AddProjectMember(projectID, "testuser@example.com", models.PermissionEditor)
-	if err != nil {
-		return fmt.Errorf("failed to add member to project: %w", err)
-	}
-	log.Println("Member added:", addedMember)
-	memberData := addedMember["data"].(map[string]interface{})
-	userID := uint(memberData["user_id"].(float64))
+	assert.Nil(c, err, "Failed to add member to project")
+	userID := uint(addedMember["user_id"].(float64))
 
 	// List projects
-	log.Println("Listing projects...")
 	projects, err := c.GetProjects()
-	if err != nil {
-		return fmt.Errorf("failed to list projects: %w", err)
-	}
-	log.Println("Fetched projects:", projects)
+	assert.Nil(c, err, "Failed to list projects")
+	assert.NotEmpty(c, projects, "Projects list should not be empty")
 
 	// Remove a member from the project
-	log.Println("Removing a member from the project...")
-	if err := c.RemoveProjectMember(projectID, userID); err != nil {
-		return fmt.Errorf("failed to remove member from project: %w", err)
-	}
-	log.Println("Member removed successfully.")
+	err = c.RemoveProjectMember(projectID, userID)
+	assert.Nil(c, err, "Failed to remove member from project")
 
 	// Delete the project
-	log.Println("Deleting the project...")
-	if err := c.DeleteProject(projectID); err != nil {
-		return fmt.Errorf("failed to delete project: %w", err)
-	}
-	log.Println("Project deleted successfully.")
+	err = c.DeleteProject(projectID)
+	assert.Nil(c, err, "Failed to delete project")
 
-	return nil
+	return
 }

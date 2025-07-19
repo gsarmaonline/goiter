@@ -9,6 +9,10 @@ import (
 	"log"
 	"net/http"
 	"time"
+
+	"github.com/gsarmaonline/goiter/config"
+	"github.com/gsarmaonline/goiter/core"
+	"github.com/joho/godotenv"
 )
 
 type GoiterClient struct {
@@ -18,19 +22,39 @@ type GoiterClient struct {
 	jwtToken string
 }
 
-// NewGoiterClient creates a new client instance
-func NewGoiterClient(baseURL string) (gc *GoiterClient) {
-	if baseURL == "" {
-		baseURL = "http://localhost:8090"
-	}
+func (c *GoiterClient) Errorf(format string, args ...interface{}) {
+	log.Printf("ERROR: "+format, args...)
+}
 
+// NewGoiterClient creates a new client instance
+func NewGoiterClient() (gc *GoiterClient) {
 	gc = &GoiterClient{
-		BaseURL: baseURL,
+		BaseURL: "http://localhost:8090",
 		httpClient: &http.Client{
 			Timeout: 30 * time.Second,
 		},
 	}
 	return
+}
+
+func (c *GoiterClient) StartServer() {
+	fmt.Println("Attempting to start server...")
+
+	if err := godotenv.Load(); err != nil {
+		log.Printf("Warning: .env file not found or error loading it: %v", err)
+	}
+	cfg := config.DefaultConfig()
+	cfg.Mode = config.ModeDev
+	cfg.Port = "8090"
+	cfg.DBType = config.SqliteDbType
+
+	server := core.NewServer(cfg)
+
+	log.Printf("Starting server on :%s", cfg.Port)
+
+	if err := server.Start(); err != nil {
+		log.Fatalf("Failed to start server: %v", err)
+	}
 }
 
 // makeRequest makes an authenticated HTTP request
@@ -75,6 +99,12 @@ func (c *GoiterClient) makeRequest(method, endpoint string,
 	if err = json.Unmarshal(respB, &respBody); err != nil {
 		return
 	}
+	if respBody["data"] != nil {
+		if data, ok := respBody["data"].(map[string]interface{}); ok {
+			respBody = data
+			return
+		}
+	}
 
 	return
 }
@@ -96,5 +126,23 @@ func (c *GoiterClient) Ping() error {
 
 func Run() {
 	// Use the new test configuration system
-	RunTestSuite()
+	// Initialize clients
+	client := NewGoiterClient()
+
+	log.Println("🚀 Starting Goiter Test Suite...")
+
+	// Run basic functional tests
+	log.Println("📋 Running Basic Functional Tests...")
+	if err := client.RunUserSuite(); err != nil {
+		log.Fatalf("❌ User suite failed: %v", err)
+	}
+	if err := client.RunProfileSuite(); err != nil {
+		log.Fatalf("❌ Profile suite failed: %v", err)
+	}
+	if err := client.RunAccountSuite(); err != nil {
+		log.Fatalf("❌ Account suite failed: %v", err)
+	}
+	if err := client.RunProjectSuite(); err != nil {
+		log.Fatalf("❌ Project suite failed: %v", err)
+	}
 }

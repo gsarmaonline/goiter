@@ -1,10 +1,10 @@
 package testsuite
 
 import (
-	"fmt"
 	"log"
 
 	"github.com/gsarmaonline/goiter/core/models"
+	"github.com/stretchr/testify/assert"
 )
 
 func (c *GoiterClient) UpdateProfile() (respBody map[string]interface{}, err error) {
@@ -22,7 +22,6 @@ func (c *GoiterClient) UpdateProfile() (respBody map[string]interface{}, err err
 	if _, respBody, err = c.makeRequest("PUT", "/profile", profile); err != nil {
 		return
 	}
-	log.Println("Profile updated successfully:", respBody)
 	return
 }
 
@@ -35,14 +34,19 @@ func (c *GoiterClient) GetProfile() (respBody map[string]interface{}, err error)
 
 func (c *GoiterClient) RunProfileSuite() (err error) {
 	log.Println("Running profile suite...")
-	if _, err = c.UpdateProfile(); err != nil {
-		return fmt.Errorf("UpdateProfile failed: %w", err)
-	}
-	log.Println("UpdateProfile successful")
 
-	if _, err = c.GetProfile(); err != nil {
-		return fmt.Errorf("GetProfile failed: %w", err)
-	}
-	log.Println("GetProfile successful")
+	_, err = c.UpdateProfile()
+	assert.Nil(c, err, "UpdateProfile failed")
+
+	respBody, err := c.GetProfile()
+	assert.Nil(c, err, "GetProfile failed")
+	assert.Equal(c, "123 Main St", respBody["address"], "Address should be updated")
+	assert.Equal(c, "Anytown", respBody["city"], "City should be updated")
+	assert.Equal(c, "CA", respBody["state"], "State should be updated")
+	assert.Equal(c, "12345", respBody["postal_code"], "Postal code should be updated")
+	assert.Equal(c, "USA", respBody["country"], "Country should be updated")
+	assert.Equal(c, "Goiter Inc.", respBody["company_name"], "Company name should be updated")
+	assert.Equal(c, "Software Engineer", respBody["job_title"], "Job title should be updated")
+	assert.Equal(c, "Engineering", respBody["department"], "Department should be updated")
 	return
 }

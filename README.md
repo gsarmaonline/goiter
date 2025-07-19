@@ -43,13 +43,6 @@ A comprehensive boilerplate for building modern SaaS applications with authentic
 - **JWT** for authentication
 - **Air** for hot reloading during development
 
-### Frontend (Coming Soon)
-
-- **React** with modern hooks
-- **TypeScript** for type safety
-- **Tailwind CSS** for styling
-- **Stripe Elements** for payment forms
-
 ### Infrastructure
 
 - **Render** for cloud deployment

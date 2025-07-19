@@ -8,6 +8,7 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 )
 
 const (
@@ -30,9 +31,10 @@ var (
 
 type (
 	DbManager struct {
-		seeder *Seeder
-		cfg    *config.Config
-		Db     *gorm.DB
+		seeder  *Seeder
+		cfg     *config.Config
+		gormCfg *gorm.Config
+		Db      *gorm.DB
 
 		dbHost    string
 		dbPort    string
@@ -50,6 +52,9 @@ type (
 func NewDbManager(cfg *config.Config) (dbMgr *DbManager, err error) {
 	dbMgr = &DbManager{
 		cfg: cfg,
+		gormCfg: &gorm.Config{
+			Logger: logger.Default.LogMode(logger.Silent),
+		},
 	}
 	if err = dbMgr.Validate(); err != nil {
 		return
@@ -65,7 +70,7 @@ func NewDbManager(cfg *config.Config) (dbMgr *DbManager, err error) {
 }
 
 func (dbMgr *DbManager) ConnectSqlite() (err error) {
-	dbMgr.Db, err = gorm.Open(sqlite.Open(sqliteDbPath), &gorm.Config{})
+	dbMgr.Db, err = gorm.Open(sqlite.Open(sqliteDbPath), dbMgr.gormCfg)
 	return
 }
 
@@ -106,14 +111,14 @@ func (dbMgr *DbManager) Setup() (err error) {
 		}
 	} else {
 		log.Println("Using Postgres")
-		if dbMgr.Db, err = gorm.Open(postgres.Open(dbMgr.GetDSN()), &gorm.Config{}); err != nil {
+		if dbMgr.Db, err = gorm.Open(postgres.Open(dbMgr.GetDSN()), dbMgr.gormCfg); err != nil {
 			return
 		}
 	}
 	if dbMgr.cfg.Mode == config.ModeDev {
 		dbMgr.DropModels()
 	}
-	if err = dbMgr.Db.Debug().AutoMigrate(Models...); err != nil {
+	if err = dbMgr.Db.AutoMigrate(Models...); err != nil {
 		return
 	}
 	return

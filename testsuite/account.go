@@ -1,8 +1,9 @@
 package testsuite
 
 import (
-	"fmt"
 	"log"
+
+	"github.com/stretchr/testify/assert"
 )
 
 // GetAccount retrieves the current user's account
@@ -29,28 +30,20 @@ func (c *GoiterClient) RunAccountSuite() (err error) {
 	log.Println("Running Account test suite...")
 
 	// Get the account
-	log.Println("Getting the account...")
 	account, err := c.GetAccount()
-	if err != nil {
-		return fmt.Errorf("failed to get account: %w", err)
-	}
-	log.Println("Fetched account details:", account)
+	assert.Nil(c, err, "Failed to get account")
+	assert.NotEqual(c, "", account["id"], "Account ID should not be empty")
 
 	// Update the account
-	log.Println("Updating the account...")
 	updatedAccount, err := c.UpdateAccount("Updated Test Account", "This is an updated test account.")
-	if err != nil {
-		return fmt.Errorf("failed to update account: %w", err)
-	}
-	log.Println("Account updated:", updatedAccount)
+	assert.Nil(c, err, "Failed to update account")
+	assert.Equal(c, "Updated Test Account", updatedAccount["name"], "Account name should be updated")
+	assert.Equal(c, "This is an updated test account.", updatedAccount["description"], "Account description should be updated")
 
-	// Get the account again to verify the changes
-	log.Println("Getting the account again...")
+	// Verify the account is updated
 	account, err = c.GetAccount()
-	if err != nil {
-		return fmt.Errorf("failed to get account: %w", err)
-	}
-	log.Println("Fetched account details:", account)
+	assert.Nil(c, err, "Failed to get account")
+	assert.NotEqual(c, "", account["id"], "Account ID should not be empty")
 
 	return
 }

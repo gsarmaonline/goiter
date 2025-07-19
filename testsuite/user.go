@@ -75,7 +75,7 @@ func (c *GoiterClient) Login() error {
 		return fmt.Errorf("authentication failed: %v", err)
 	}
 
-	fmt.Println("✅ Login successful! Welcome", user)
+	fmt.Println("✅ Login successful! Welcome", user["email"])
 	return nil
 }
 
