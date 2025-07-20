@@ -34,6 +34,8 @@ func NewGoiterClient() (gc *GoiterClient) {
 			Timeout: 30 * time.Second,
 		},
 	}
+	go gc.StartServer()
+	time.Sleep(2 * time.Second) // Wait for the server to start
 	return
 }
 
@@ -124,25 +126,29 @@ func (c *GoiterClient) Ping() error {
 	return nil
 }
 
-func Run() {
-	// Use the new test configuration system
-	// Initialize clients
-	client := NewGoiterClient()
-
+func (c *GoiterClient) Run() (err error) {
 	log.Println("🚀 Starting Goiter Test Suite...")
 
 	// Run basic functional tests
 	log.Println("📋 Running Basic Functional Tests...")
-	if err := client.RunUserSuite(); err != nil {
+	if err := c.RunUserSuite(); err != nil {
 		log.Fatalf("❌ User suite failed: %v", err)
 	}
-	if err := client.RunProfileSuite(); err != nil {
+	if err := c.RunProfileSuite(); err != nil {
 		log.Fatalf("❌ Profile suite failed: %v", err)
 	}
-	if err := client.RunAccountSuite(); err != nil {
+	if err := c.RunAccountSuite(); err != nil {
 		log.Fatalf("❌ Account suite failed: %v", err)
 	}
-	if err := client.RunProjectSuite(); err != nil {
+	if err := c.RunProjectSuite(); err != nil {
 		log.Fatalf("❌ Project suite failed: %v", err)
+	}
+	return
+}
+
+func Run() {
+	c := NewGoiterClient()
+	if err := c.Run(); err != nil {
+		log.Fatalf("Test suite failed: %v", err)
 	}
 }
