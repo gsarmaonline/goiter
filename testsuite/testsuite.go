@@ -12,6 +12,7 @@ import (
 
 	"github.com/gsarmaonline/goiter/config"
 	"github.com/gsarmaonline/goiter/core"
+	"github.com/gsarmaonline/goiter/core/models"
 	"github.com/joho/godotenv"
 )
 
@@ -20,6 +21,8 @@ type GoiterClient struct {
 	httpClient *http.Client
 
 	jwtToken string
+
+	users map[string]*models.User
 }
 
 func (c *GoiterClient) Errorf(format string, args ...interface{}) {
@@ -33,6 +36,10 @@ func NewGoiterClient() (gc *GoiterClient) {
 		httpClient: &http.Client{
 			Timeout: 30 * time.Second,
 		},
+		users: make(map[string]*models.User),
+	}
+	gc.users["root"] = &models.User{
+		Email: "root@example.com",
 	}
 	go gc.StartServer()
 	time.Sleep(2 * time.Second) // Wait for the server to start

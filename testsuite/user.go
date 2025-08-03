@@ -17,13 +17,13 @@ func (c *GoiterClient) GetUser() (user map[string]interface{}, err error) {
 	return
 }
 
-func (c *GoiterClient) shortCircuitLogin(baseURL string) (token string, err error) {
+func (c *GoiterClient) shortCircuitLogin(baseURL, email string) (token string, err error) {
 	var (
 		resp *http.Response
 	)
 
 	reqBody := map[string]string{
-		"email": "user1@gmail.com",
+		"email": email,
 	}
 	reqBodyJSON, _ := json.Marshal(reqBody)
 
@@ -52,13 +52,13 @@ func (c *GoiterClient) shortCircuitLogin(baseURL string) (token string, err erro
 }
 
 // Login initiates the Google OAuth flow
-func (c *GoiterClient) Login() error {
+func (c *GoiterClient) Login(email string) error {
 	fmt.Println("🔐 Goiter Client Login")
 	var (
 		jwtToken string
 		err      error
 	)
-	if jwtToken, err = c.shortCircuitLogin(c.BaseURL); err != nil {
+	if jwtToken, err = c.shortCircuitLogin(c.BaseURL, email); err != nil {
 		return fmt.Errorf("failed to login: %v", err)
 	}
 	if jwtToken == "" {
@@ -69,7 +69,7 @@ func (c *GoiterClient) Login() error {
 	c.jwtToken = jwtToken
 
 	// Test the authentication by making a request to /me
-	fmt.Println("\n🔄 Testing authentication...")
+	fmt.Println("\n🔄 Testing authentication for user", email)
 	user, err := c.GetUser()
 	if err != nil {
 		return fmt.Errorf("authentication failed: %v", err)
@@ -95,7 +95,7 @@ func (c *GoiterClient) Logout() (err error) {
 }
 
 func (c *GoiterClient) RunUserSuite() (err error) {
-	if err = c.Login(); err != nil {
+	if err = c.Login(c.users["root"].Email); err != nil {
 		log.Println("Login failed:", err)
 		return
 	}

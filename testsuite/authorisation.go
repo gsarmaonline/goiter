@@ -1,6 +1,10 @@
 package testsuite
 
-import "github.com/gsarmaonline/goiter/core/models"
+import (
+	"fmt"
+
+	"github.com/gsarmaonline/goiter/core/models"
+)
 
 // Testing Authorisation
 // - Define types of users
@@ -8,11 +12,39 @@ import "github.com/gsarmaonline/goiter/core/models"
 
 type (
 	AuthorisationScenario struct {
-		Users []*models.User
+		gc    *GoiterClient
+		users []*models.User
 	}
 )
 
-func (c *GoiterClient) RunAuthorisationSuite() error {
-	// Implement the logic to run the authorisation scenario
+func NewAuthorisationScenario(gc *GoiterClient) *AuthorisationScenario {
+	return &AuthorisationScenario{
+		gc:    gc,
+		users: make([]*models.User, 0),
+	}
+}
+
+func (as *AuthorisationScenario) createAuthUsers() (err error) {
+	as.users = append(as.users, &models.User{
+		Email: "auth_root@sample.com",
+	}, &models.User{
+		Email: "auth_user@sample.com",
+	})
+	for _, user := range as.users {
+		if err = as.gc.Login(user.Email); err != nil {
+			return fmt.Errorf("failed to create user %s: %w", user.Email, err)
+		}
+	}
+	return
+}
+
+func (c *GoiterClient) RunAuthorisationSuite() (err error) {
+
+	as := NewAuthorisationScenario(c)
+
+	if err = as.createAuthUsers(); err != nil {
+		c.Errorf("Failed to create auth users: %v", err)
+		return err
+	}
 	return nil
 }
