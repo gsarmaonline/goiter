@@ -11,3 +11,8 @@ type (
 		Users []*models.User
 	}
 )
+
+func (c *GoiterClient) RunAuthorisationSuite() error {
+	// Implement the logic to run the authorisation scenario
+	return nil
+}

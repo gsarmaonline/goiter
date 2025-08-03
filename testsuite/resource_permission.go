@@ -22,7 +22,7 @@ var ResourcePermissionTests = []ResourcePermissionTest{
 		MinLevel:     models.PermissionViewer,
 		Description:  "Reading project details",
 		ShouldSucceed: map[models.PermissionLevel]bool{
-			models.PermissionOwner:  true,
+			models.PermissionRoot:   true,
 			models.PermissionAdmin:  true,
 			models.PermissionEditor: true,
 			models.PermissionViewer: true,
@@ -34,7 +34,7 @@ var ResourcePermissionTests = []ResourcePermissionTest{
 		MinLevel:     models.PermissionAdmin,
 		Description:  "Updating project details",
 		ShouldSucceed: map[models.PermissionLevel]bool{
-			models.PermissionOwner:  true,
+			models.PermissionRoot:   true,
 			models.PermissionAdmin:  true,
 			models.PermissionEditor: false,
 			models.PermissionViewer: false,
@@ -43,10 +43,10 @@ var ResourcePermissionTests = []ResourcePermissionTest{
 	{
 		ResourceType: "project",
 		Action:       models.DeleteAction,
-		MinLevel:     models.PermissionOwner,
+		MinLevel:     models.PermissionRoot,
 		Description:  "Deleting project",
 		ShouldSucceed: map[models.PermissionLevel]bool{
-			models.PermissionOwner:  true,
+			models.PermissionRoot:   true,
 			models.PermissionAdmin:  false,
 			models.PermissionEditor: false,
 			models.PermissionViewer: false,
@@ -60,7 +60,7 @@ var ResourcePermissionTests = []ResourcePermissionTest{
 		MinLevel:     models.PermissionViewer,
 		Description:  "Reading project member list",
 		ShouldSucceed: map[models.PermissionLevel]bool{
-			models.PermissionOwner:  true,
+			models.PermissionRoot:   true,
 			models.PermissionAdmin:  true,
 			models.PermissionEditor: true,
 			models.PermissionViewer: true,
@@ -72,7 +72,7 @@ var ResourcePermissionTests = []ResourcePermissionTest{
 		MinLevel:     models.PermissionAdmin,
 		Description:  "Adding project members",
 		ShouldSucceed: map[models.PermissionLevel]bool{
-			models.PermissionOwner:  true,
+			models.PermissionRoot:   true,
 			models.PermissionAdmin:  true,
 			models.PermissionEditor: false,
 			models.PermissionViewer: false,
@@ -84,7 +84,7 @@ var ResourcePermissionTests = []ResourcePermissionTest{
 		MinLevel:     models.PermissionAdmin,
 		Description:  "Removing project members",
 		ShouldSucceed: map[models.PermissionLevel]bool{
-			models.PermissionOwner:  true,
+			models.PermissionRoot:   true,
 			models.PermissionAdmin:  true,
 			models.PermissionEditor: false,
 			models.PermissionViewer: false,
@@ -98,7 +98,7 @@ var ResourcePermissionTests = []ResourcePermissionTest{
 		MinLevel:     models.PermissionViewer,
 		Description:  "Reading any resource",
 		ShouldSucceed: map[models.PermissionLevel]bool{
-			models.PermissionOwner:  true,
+			models.PermissionRoot:   true,
 			models.PermissionAdmin:  true,
 			models.PermissionEditor: true,
 			models.PermissionViewer: true,
@@ -110,7 +110,7 @@ var ResourcePermissionTests = []ResourcePermissionTest{
 		MinLevel:     models.PermissionEditor,
 		Description:  "Creating any resource",
 		ShouldSucceed: map[models.PermissionLevel]bool{
-			models.PermissionOwner:  true,
+			models.PermissionRoot:   true,
 			models.PermissionAdmin:  true,
 			models.PermissionEditor: true,
 			models.PermissionViewer: false,
@@ -122,7 +122,7 @@ var ResourcePermissionTests = []ResourcePermissionTest{
 		MinLevel:     models.PermissionEditor,
 		Description:  "Updating any resource",
 		ShouldSucceed: map[models.PermissionLevel]bool{
-			models.PermissionOwner:  true,
+			models.PermissionRoot:   true,
 			models.PermissionAdmin:  true,
 			models.PermissionEditor: true,
 			models.PermissionViewer: false,
@@ -134,7 +134,7 @@ var ResourcePermissionTests = []ResourcePermissionTest{
 		MinLevel:     models.PermissionAdmin,
 		Description:  "Deleting any resource",
 		ShouldSucceed: map[models.PermissionLevel]bool{
-			models.PermissionOwner:  true,
+			models.PermissionRoot:   true,
 			models.PermissionAdmin:  true,
 			models.PermissionEditor: false,
 			models.PermissionViewer: false,

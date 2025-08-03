@@ -5,7 +5,7 @@ import (
 )
 
 const (
-	PermissionOwner    PermissionLevel = 20 // Full access, can manage members and resources
+	PermissionRoot     PermissionLevel = 20 // Full access, can manage members and resources
 	PermissionAdmin    PermissionLevel = 19 // Can manage resources and some project settings
 	PermissionEditor   PermissionLevel = 18 // Can edit resources
 	PermissionViewer   PermissionLevel = 17 // Can only view resources

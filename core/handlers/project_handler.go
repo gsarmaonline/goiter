@@ -75,7 +75,7 @@ func (h *ProjectHandler) CreateProject(c *gin.Context) {
 	// Create owner permission
 	permission := models.Permission{
 		ProjectID: project.ID,
-		Level:     models.PermissionOwner,
+		Level:     models.PermissionRoot,
 	}
 	permission.UserID = user.ID
 	if err := h.handler.CreateWithUser(c, &permission); err != nil {

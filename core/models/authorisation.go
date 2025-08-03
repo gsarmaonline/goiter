@@ -6,6 +6,9 @@ import (
 	"gorm.io/gorm"
 )
 
+// Pending Items
+// - Implement scope of the RoleAccess. It can be for a project or account
+
 const (
 	// Actions
 	ReadAction   ActionT = "read"
@@ -114,8 +117,12 @@ func formPermissionScopes(resourceType string, resourceID uint, action ActionT) 
 	}
 }
 
-func formRoleAccessQuery(db *gorm.DB, resourceType string, resourceID uint, action ActionT,
-	level PermissionLevel) (allowAccess bool, proceedToNext bool) {
+func formRoleAccessQuery(db *gorm.DB,
+	resourceType string,
+	resourceID uint,
+	action ActionT,
+	level PermissionLevel,
+) (allowAccess bool, proceedToNext bool) {
 
 	proceedToNext = true
 	roleAccess := &RoleAccess{}

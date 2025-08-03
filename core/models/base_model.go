@@ -9,6 +9,7 @@ type (
 		GetID() uint
 		GetUserID() uint
 		SetUserID(uint)
+		GetDefaultRoleAccessRows() []*RoleAccess
 	}
 	BaseModel struct {
 		ID        uint      `json:"id" gorm:"primary_key"`
@@ -46,4 +47,17 @@ func (b *BaseModelWithoutUser) SetUserID(userID uint) {
 
 func (b *BaseModel) GetID() uint {
 	return b.ID
+}
+
+func (b *BaseModel) GetDefaultRoleAccessRows() (roleAccessRows []*RoleAccess) {
+	// Default permissions can be overridden in the model
+	roleAccessRows = []*RoleAccess{
+		{
+			ResourceType: WildcardResourceType,
+			ResourceID:   WildcardResourceID,
+			Action:       WildcardAction,
+			Level:        PermissionAdmin,
+		},
+	}
+	return
 }

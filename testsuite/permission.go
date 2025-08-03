@@ -21,7 +21,7 @@ var ProjectPermissionTests = []PermissionTestScenario{
 	// Owner tests
 	{
 		Name:           "Owner can read project",
-		UserLevel:      models.PermissionOwner,
+		UserLevel:      models.PermissionRoot,
 		Action:         "read",
 		Method:         "GET",
 		Endpoint:       "/projects/%d",
@@ -30,7 +30,7 @@ var ProjectPermissionTests = []PermissionTestScenario{
 	},
 	{
 		Name:           "Owner can update project",
-		UserLevel:      models.PermissionOwner,
+		UserLevel:      models.PermissionRoot,
 		Action:         "update",
 		Method:         "PUT",
 		Endpoint:       "/projects/%d",
@@ -40,7 +40,7 @@ var ProjectPermissionTests = []PermissionTestScenario{
 	},
 	{
 		Name:           "Owner can delete project",
-		UserLevel:      models.PermissionOwner,
+		UserLevel:      models.PermissionRoot,
 		Action:         "delete",
 		Method:         "DELETE",
 		Endpoint:       "/projects/%d",
@@ -144,7 +144,7 @@ var ProjectMemberPermissionTests = []PermissionTestScenario{
 	// Owner tests
 	{
 		Name:           "Owner can add project member",
-		UserLevel:      models.PermissionOwner,
+		UserLevel:      models.PermissionRoot,
 		Action:         "create",
 		Method:         "POST",
 		Endpoint:       "/projects/%d/members",
@@ -154,7 +154,7 @@ var ProjectMemberPermissionTests = []PermissionTestScenario{
 	},
 	{
 		Name:           "Owner can remove project member",
-		UserLevel:      models.PermissionOwner,
+		UserLevel:      models.PermissionRoot,
 		Action:         "delete",
 		Method:         "DELETE",
 		Endpoint:       "/projects/%d/members/%d",
