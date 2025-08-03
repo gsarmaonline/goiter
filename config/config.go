@@ -44,3 +44,8 @@ func DefaultConfig() *Config {
 		DBName:     os.Getenv("DB_NAME"),
 	}
 }
+
+func (cfg *Config) GetKey(cfgKey string) (cfgVal string) {
+	cfgVal = os.Getenv(cfgKey)
+	return
+}

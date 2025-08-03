@@ -15,11 +15,11 @@ import (
 type (
 	ModeT  string
 	Server struct {
-		router  *gin.Engine
-		dbMgr   *models.DbManager
-		handler *handlers.Handler
+		Router  *gin.Engine
+		DbMgr   *models.DbManager
+		Handler *handlers.Handler
 
-		cfg *config.Config
+		Cfg *config.Config
 	}
 )
 
@@ -54,15 +54,15 @@ func NewServer(cfg *config.Config) *Server {
 
 	// Create server instance
 	server := &Server{
-		router:  router,
-		dbMgr:   dbMgr,
-		handler: handlers.NewHandler(router, dbMgr.Db, cfg),
-		cfg:     cfg,
+		Router:  router,
+		DbMgr:   dbMgr,
+		Handler: handlers.NewHandler(router, dbMgr.Db, cfg),
+		Cfg:     cfg,
 	}
 
 	return server
 }
 
 func (s *Server) Start() error {
-	return s.router.Run(fmt.Sprintf(":%s", s.cfg.Port))
+	return s.Router.Run(fmt.Sprintf(":%s", s.Cfg.Port))
 }

@@ -16,6 +16,9 @@ type (
 		db         *gorm.DB
 		middleware *middleware.Middleware
 		cfg        *config.Config
+
+		OpenRouteGroup      *gin.RouterGroup
+		ProtectedRouteGroup *gin.RouterGroup
 	}
 )
 
@@ -26,6 +29,9 @@ func NewHandler(router *gin.Engine, db *gorm.DB, cfg *config.Config) (handler *H
 		db:         db,
 		middleware: middleware,
 		cfg:        cfg,
+
+		OpenRouteGroup:      router.Group("/"),
+		ProtectedRouteGroup: router.Group(""),
 	}
 	// Setup routes
 	handler.SetupRoutes()
@@ -47,14 +53,13 @@ func (h *Handler) setupAuthRoutes() {
 	}
 
 	// Protected routes (auth required)
-	protected := h.router.Group("")
-	protected.Use(h.middleware.AuthenticationMiddleware())
-	protected.Use(h.middleware.AuthorisationMiddleware())
+	h.ProtectedRouteGroup.Use(h.middleware.AuthenticationMiddleware())
+	h.ProtectedRouteGroup.Use(h.middleware.AuthorisationMiddleware())
 	{
-		protected.GET("/me", h.handleGetUser)
-		protected.POST("/logout", h.handleLogout)
-		protected.GET("/profile", h.handleGetProfile)
-		protected.PUT("/profile", h.handleUpdateProfile)
+		h.ProtectedRouteGroup.GET("/me", h.handleGetUser)
+		h.ProtectedRouteGroup.POST("/logout", h.handleLogout)
+		h.ProtectedRouteGroup.GET("/profile", h.handleGetProfile)
+		h.ProtectedRouteGroup.PUT("/profile", h.handleUpdateProfile)
 
 		// Initialize handlers
 		projectHandler := NewProjectHandler(h)
@@ -62,7 +67,7 @@ func (h *Handler) setupAuthRoutes() {
 		billingHandler := NewBillingHandler(h)
 
 		// Project routes
-		projectRoutes := protected.Group("/projects")
+		projectRoutes := h.ProtectedRouteGroup.Group("/projects")
 		{
 			projectRoutes.POST("", projectHandler.CreateProject)
 			projectRoutes.GET("", projectHandler.ListProjects)
@@ -74,25 +79,22 @@ func (h *Handler) setupAuthRoutes() {
 		}
 
 		// Account routes
-		accountRoutes := protected.Group("/account")
+		accountRoutes := h.ProtectedRouteGroup.Group("/account")
 		{
 			accountRoutes.GET("", accountHandler.GetAccount)
 			accountRoutes.PUT("", accountHandler.UpdateAccount)
 		}
 
 		// Billing routes
-		billingRoutes := protected.Group("/billing")
+		billingRoutes := h.ProtectedRouteGroup.Group("/billing")
 		{
 			billingRoutes.POST("/subscriptions", billingHandler.CreateSubscription)
 			billingRoutes.DELETE("/subscriptions", billingHandler.CancelSubscription)
 			billingRoutes.GET("/subscriptions", billingHandler.GetSubscriptionStatus)
 		}
 
-		openRoutes := h.router.Group("/")
-		{
-			openRoutes.GET("/plans", h.GetPlans)
-			openRoutes.POST("/webhook", billingHandler.HandleWebhook)
-		}
+		h.OpenRouteGroup.GET("/plans", h.GetPlans)
+		h.OpenRouteGroup.POST("/webhook", billingHandler.HandleWebhook)
 
 	}
 }
