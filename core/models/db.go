@@ -69,6 +69,14 @@ func NewDbManager(cfg *config.Config) (dbMgr *DbManager, err error) {
 	return
 }
 
+func (dbMgr *DbManager) RegisterModels(modelName string, model interface{}) (err error) {
+	if dbMgr.models == nil {
+		dbMgr.models = make(map[string]interface{})
+	}
+	dbMgr.models[modelName] = model
+	return
+}
+
 func (dbMgr *DbManager) ConnectSqlite() (err error) {
 	dbMgr.Db, err = gorm.Open(sqlite.Open(sqliteDbPath), dbMgr.gormCfg)
 	return
