@@ -10,11 +10,15 @@ import (
 
 // GetProjects retrieves all projects for the current user
 func (c *GoiterClient) GetProjects() (projects []interface{}, err error) {
-	resp := make(map[string]interface{})
-	if _, resp, err = c.makeRequest("GET", "/projects", nil); err != nil {
+	cliResp := &ClientResponse{}
+	if cliResp, err = c.makeRequest(&ClientRequest{
+		Method: "GET",
+		URL:    "/projects",
+		Body:   nil,
+	}); err != nil {
 		return nil, err
 	}
-	projects = resp["data"].([]interface{})
+	projects = cliResp.RespBody["data"].([]interface{})
 	return
 }
 
@@ -24,13 +28,29 @@ func (c *GoiterClient) CreateProject(name, description string) (project map[stri
 		"name":        name,
 		"description": description,
 	}
-	_, project, err = c.makeRequest("POST", "/projects", body)
+	cliResp := &ClientResponse{}
+	if cliResp, err = c.makeRequest(&ClientRequest{
+		Method: "POST",
+		URL:    "/projects",
+		Body:   body,
+	}); err != nil {
+		return
+	}
+	project = cliResp.RespBody
 	return
 }
 
 // GetProject retrieves a single project by its ID
 func (c *GoiterClient) GetProject(id uint) (project map[string]interface{}, err error) {
-	_, project, err = c.makeRequest("GET", fmt.Sprintf("/projects/%d", id), nil)
+	cliResp := &ClientResponse{}
+	if cliResp, err = c.makeRequest(&ClientRequest{
+		Method: "GET",
+		URL:    fmt.Sprintf("/projects/%d", id),
+		Body:   nil,
+	}); err != nil {
+		return nil, err
+	}
+	project = cliResp.RespBody
 	return
 }
 
@@ -40,13 +60,27 @@ func (c *GoiterClient) UpdateProject(id uint, name, description string) (project
 		"name":        name,
 		"description": description,
 	}
-	_, project, err = c.makeRequest("PUT", fmt.Sprintf("/projects/%d", id), body)
+	cliResp := &ClientResponse{}
+	if cliResp, err = c.makeRequest(&ClientRequest{
+		Method: "PUT",
+		URL:    fmt.Sprintf("/projects/%d", id),
+		Body:   body,
+	}); err != nil {
+		return nil, err
+	}
+	project = cliResp.RespBody
 	return
 }
 
 // DeleteProject deletes a project by its ID
 func (c *GoiterClient) DeleteProject(id uint) (err error) {
-	_, _, err = c.makeRequest("DELETE", fmt.Sprintf("/projects/%d", id), nil)
+	if _, err = c.makeRequest(&ClientRequest{
+		Method: "DELETE",
+		URL:    fmt.Sprintf("/projects/%d", id),
+		Body:   nil,
+	}); err != nil {
+		return err
+	}
 	return
 }
 
@@ -56,13 +90,27 @@ func (c *GoiterClient) AddProjectMember(projectID uint, userEmail string, level 
 		"user_email": userEmail,
 		"level":      level,
 	}
-	_, permission, err = c.makeRequest("POST", fmt.Sprintf("/projects/%d/members", projectID), body)
+	cliResp := &ClientResponse{}
+	if cliResp, err = c.makeRequest(&ClientRequest{
+		Method: "POST",
+		URL:    fmt.Sprintf("/projects/%d/members", projectID),
+		Body:   body,
+	}); err != nil {
+		return nil, err
+	}
+	permission = cliResp.RespBody
 	return
 }
 
 // RemoveProjectMember removes a member from a project
 func (c *GoiterClient) RemoveProjectMember(projectID, userID uint) (err error) {
-	_, _, err = c.makeRequest("DELETE", fmt.Sprintf("/projects/%d/members/%d", projectID, userID), nil)
+	if _, err = c.makeRequest(&ClientRequest{
+		Method: "DELETE",
+		URL:    fmt.Sprintf("/projects/%d/members/%d", projectID, userID),
+		Body:   nil,
+	}); err != nil {
+		return err
+	}
 	return
 }
 

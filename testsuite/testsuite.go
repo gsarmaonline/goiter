@@ -13,14 +13,27 @@ import (
 	"github.com/gsarmaonline/goiter/core/models"
 )
 
-type GoiterClient struct {
-	BaseURL    string
-	httpClient *http.Client
+type (
+	GoiterClient struct {
+		BaseURL    string
+		httpClient *http.Client
 
-	jwtToken string
+		jwtToken string
 
-	users map[string]*models.User
-}
+		users map[string]*models.User
+	}
+
+	ClientRequest struct {
+		Method   string
+		URL      string
+		Body     interface{}
+		SkipAuth bool
+	}
+	ClientResponse struct {
+		Resp     *http.Response
+		RespBody map[string]interface{}
+	}
+)
 
 func (c *GoiterClient) Errorf(format string, args ...interface{}) {
 	log.Printf("ERROR: "+format, args...)
@@ -44,8 +57,7 @@ func NewGoiterClient() (gc *GoiterClient) {
 }
 
 // makeRequest makes an authenticated HTTP request
-func (c *GoiterClient) makeRequest(method, endpoint string,
-	body interface{}) (resp *http.Response, respBody map[string]interface{}, err error) {
+func (c *GoiterClient) makeRequest(cliReq *ClientRequest) (cliResp *ClientResponse, err error) {
 
 	var (
 		reqBody *bytes.Reader
@@ -55,39 +67,41 @@ func (c *GoiterClient) makeRequest(method, endpoint string,
 		err = errors.New("jwt token is not set")
 		return
 	}
-	bodyb, _ := json.Marshal(body)
+	bodyb, _ := json.Marshal(cliReq.Body)
 	reqBody = bytes.NewReader(bodyb)
 
-	if req, err = http.NewRequest(method, c.BaseURL+endpoint, reqBody); err != nil {
+	if req, err = http.NewRequest(cliReq.Method, c.BaseURL+cliReq.URL, reqBody); err != nil {
 		return
 	}
 
 	// Add Authorization header
 	req.Header.Set("Authorization", "Bearer "+c.jwtToken)
 
-	if body != nil {
+	if cliReq.Body != nil {
 		req.Header.Set("Content-Type", "application/json")
 	}
 
-	if resp, err = c.httpClient.Do(req); err != nil {
+	cliResp = &ClientResponse{}
+
+	if cliResp.Resp, err = c.httpClient.Do(req); err != nil {
 		log.Println(err)
 		return
 	}
-	defer resp.Body.Close()
+	defer cliResp.Resp.Body.Close()
 
-	respBody = make(map[string]interface{})
-	respB, err := io.ReadAll(resp.Body)
+	cliResp.RespBody = make(map[string]interface{})
+	respB, err := io.ReadAll(cliResp.Resp.Body)
 
-	if resp.StatusCode != http.StatusOK && err == nil {
-		err = fmt.Errorf("request failed with status: %d with body", resp.StatusCode, string(respB))
+	if cliResp.Resp.StatusCode != http.StatusOK && err == nil {
+		err = fmt.Errorf("request failed with status: %d with body", cliResp.Resp.StatusCode, string(respB))
 		return
 	}
-	if err = json.Unmarshal(respB, &respBody); err != nil {
+	if err = json.Unmarshal(respB, &cliResp.RespBody); err != nil {
 		return
 	}
-	if respBody["data"] != nil {
-		if data, ok := respBody["data"].(map[string]interface{}); ok {
-			respBody = data
+	if cliResp.RespBody["data"] != nil {
+		if data, ok := cliResp.RespBody["data"].(map[string]interface{}); ok {
+			cliResp.RespBody = data
 			return
 		}
 	}

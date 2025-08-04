@@ -8,9 +8,14 @@ import (
 
 // GetAccount retrieves the current user's account
 func (c *GoiterClient) GetAccount() (respBody map[string]interface{}, err error) {
-	if _, respBody, err = c.makeRequest("GET", "/account", nil); err != nil {
+	cliResp := &ClientResponse{}
+	if cliResp, err = c.makeRequest(&ClientRequest{
+		Method: "GET",
+		URL:    "/account",
+	}); err != nil {
 		return
 	}
+	respBody = cliResp.RespBody
 	return
 }
 
@@ -20,9 +25,15 @@ func (c *GoiterClient) UpdateAccount(name, description string) (respBody map[str
 		"name":        name,
 		"description": description,
 	}
-	if _, respBody, err = c.makeRequest("PUT", "/account", body); err != nil {
+	cliResp := &ClientResponse{}
+	if cliResp, err = c.makeRequest(&ClientRequest{
+		Method: "PUT",
+		URL:    "/account",
+		Body:   body,
+	}); err != nil {
 		return
 	}
+	respBody = cliResp.RespBody
 	return
 }
 

@@ -19,16 +19,28 @@ func (c *GoiterClient) UpdateProfile() (respBody map[string]interface{}, err err
 		JobTitle:    "Software Engineer",
 		Department:  "Engineering",
 	}
-	if _, respBody, err = c.makeRequest("PUT", "/profile", profile); err != nil {
+	cliResp := &ClientResponse{}
+	if cliResp, err = c.makeRequest(&ClientRequest{
+		Method: "PUT",
+		URL:    "/profile",
+		Body:   profile,
+	}); err != nil {
 		return
 	}
+	respBody = cliResp.RespBody
 	return
 }
 
 func (c *GoiterClient) GetProfile() (respBody map[string]interface{}, err error) {
-	if _, respBody, err = c.makeRequest("GET", "/profile", nil); err != nil {
+	cliResp := &ClientResponse{}
+	if cliResp, err = c.makeRequest(&ClientRequest{
+		Method: "GET",
+		URL:    "/profile",
+		Body:   nil,
+	}); err != nil {
 		return nil, err
 	}
+	respBody = cliResp.RespBody
 	return
 }
 

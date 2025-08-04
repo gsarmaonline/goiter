@@ -11,9 +11,15 @@ import (
 
 // GetUser retrieves the current user information
 func (c *GoiterClient) GetUser() (user map[string]interface{}, err error) {
-	if _, user, err = c.makeRequest("GET", "/me", nil); err != nil {
+	cliResp := &ClientResponse{}
+	if cliResp, err = c.makeRequest(&ClientRequest{
+		Method: "GET",
+		URL:    "/me",
+		Body:   nil,
+	}); err != nil {
 		return
 	}
+	user = cliResp.RespBody
 	return
 }
 
@@ -85,7 +91,11 @@ func (c *GoiterClient) Logout() (err error) {
 		return nil
 	}
 
-	if _, _, err := c.makeRequest("POST", "/logout", nil); err != nil {
+	if _, err := c.makeRequest(&ClientRequest{
+		Method: "POST",
+		URL:    "/logout",
+		Body:   nil,
+	}); err != nil {
 		return err
 	}
 

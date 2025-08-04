@@ -34,6 +34,7 @@ func NewApp(srv *core.Server) (app *App, err error) {
 	app.DbMgr.RegisterModels("model_two", &ModelTwo{})
 
 	app.Handler.OpenRouteGroup.GET("/app_ping", app.Ping)
+	app.Handler.ProtectedRouteGroup.GET("/app_protected_ping", app.Ping)
 	return
 }
 
@@ -45,13 +46,18 @@ func (c *GoiterClient) RunAppTestSuite() (err error) {
 	log.Println("Running app test suite...")
 
 	// Test the /app_ping endpoint
-	_, resp, err := c.makeRequest("GET", "/app_ping", nil)
+	cliResp := &ClientResponse{}
+	cliResp, err = c.makeRequest(&ClientRequest{
+		Method: "GET",
+		URL:    "/app_ping",
+		Body:   nil,
+	})
 	if err != nil {
 		return err
 	}
 
-	if resp["data"] != "pong" {
-		return fmt.Errorf("expected 'pong', got '%s'", resp["data"])
+	if cliResp.RespBody["data"] != "pong" {
+		return fmt.Errorf("expected 'pong', got '%s'", cliResp.RespBody["data"])
 	}
 
 	log.Println("App test suite completed successfully.")
