@@ -74,8 +74,10 @@ func (c *GoiterClient) makeRequest(cliReq *ClientRequest) (cliResp *ClientRespon
 		return
 	}
 
-	// Add Authorization header
-	req.Header.Set("Authorization", "Bearer "+c.jwtToken)
+	if !cliReq.SkipAuth {
+		// Add Authorization header
+		req.Header.Set("Authorization", "Bearer "+c.jwtToken)
+	}
 
 	if cliReq.Body != nil {
 		req.Header.Set("Content-Type", "application/json")

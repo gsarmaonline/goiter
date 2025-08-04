@@ -3,6 +3,7 @@ package testsuite
 import (
 	"fmt"
 	"log"
+	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gsarmaonline/goiter/core"
@@ -42,15 +43,14 @@ func (app *App) Ping(c *gin.Context) {
 	app.Handler.WriteSuccess(c, "pong")
 }
 
-func (c *GoiterClient) RunAppTestSuite() (err error) {
-	log.Println("Running app test suite...")
-
+func (c *GoiterClient) PingOpenRoute() (err error) {
 	// Test the /app_ping endpoint
 	cliResp := &ClientResponse{}
 	cliResp, err = c.makeRequest(&ClientRequest{
-		Method: "GET",
-		URL:    "/app_ping",
-		Body:   nil,
+		Method:   "GET",
+		URL:      "/app_ping",
+		Body:     nil,
+		SkipAuth: true,
 	})
 	if err != nil {
 		return err
@@ -58,6 +58,45 @@ func (c *GoiterClient) RunAppTestSuite() (err error) {
 
 	if cliResp.RespBody["data"] != "pong" {
 		return fmt.Errorf("expected 'pong', got '%s'", cliResp.RespBody["data"])
+	}
+
+	return
+}
+
+func (c *GoiterClient) PingProtectedRoute() (err error) {
+	// Test the /app_protected_ping endpoint
+	cliResp := &ClientResponse{}
+	cliResp, err = c.makeRequest(&ClientRequest{
+		Method:   "GET",
+		URL:      "/app_protected_ping",
+		Body:     nil,
+		SkipAuth: true,
+	})
+	if cliResp.Resp.StatusCode != http.StatusUnauthorized {
+		err = fmt.Errorf("expected status 401 Unauthorized, got %d", cliResp.Resp.StatusCode)
+	}
+
+	// Enable auth and try
+	cliResp, err = c.makeRequest(&ClientRequest{
+		Method:   "GET",
+		URL:      "/app_protected_ping",
+		Body:     nil,
+		SkipAuth: false,
+	})
+	if cliResp.Resp.StatusCode != http.StatusOK {
+		err = fmt.Errorf("expected status 200, got %d", cliResp.Resp.StatusCode)
+	}
+
+	return
+}
+
+func (c *GoiterClient) RunAppTestSuite() (err error) {
+	log.Println("Running app test suite...")
+	if err = c.PingOpenRoute(); err != nil {
+		return
+	}
+	if err = c.PingProtectedRoute(); err != nil {
+		return
 	}
 
 	log.Println("App test suite completed successfully.")
