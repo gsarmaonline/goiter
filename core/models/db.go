@@ -43,7 +43,7 @@ type (
 		dbName    string
 		dbSSLMode string
 
-		models map[string]interface{}
+		models []interface{}
 
 		dbType config.DbTypeT
 	}
@@ -55,6 +55,7 @@ func NewDbManager(cfg *config.Config) (dbMgr *DbManager, err error) {
 		gormCfg: &gorm.Config{
 			Logger: logger.Default.LogMode(logger.Silent),
 		},
+		models: Models,
 	}
 	if err = dbMgr.Validate(); err != nil {
 		return
@@ -69,11 +70,8 @@ func NewDbManager(cfg *config.Config) (dbMgr *DbManager, err error) {
 	return
 }
 
-func (dbMgr *DbManager) RegisterModels(modelName string, model interface{}) (err error) {
-	if dbMgr.models == nil {
-		dbMgr.models = make(map[string]interface{})
-	}
-	dbMgr.models[modelName] = model
+func (dbMgr *DbManager) RegisterModels(model interface{}) (err error) {
+	dbMgr.models = append(dbMgr.models, model)
 	return
 }
 
@@ -126,7 +124,7 @@ func (dbMgr *DbManager) Setup() (err error) {
 	if dbMgr.cfg.Mode == config.ModeDev {
 		dbMgr.DropModels()
 	}
-	if err = dbMgr.Db.AutoMigrate(Models...); err != nil {
+	if err = dbMgr.Db.AutoMigrate(dbMgr.models...); err != nil {
 		return
 	}
 	return
@@ -139,10 +137,10 @@ func (dbMgr *DbManager) PostMigrate() (err error) {
 	return
 }
 
-func (db *DbManager) DropModels() (err error) {
+func (dbMgr *DbManager) DropModels() (err error) {
 	log.Println("Dropping all models")
-	for _, model := range Models {
-		if err = db.Db.Migrator().DropTable(model); err != nil {
+	for _, model := range dbMgr.models {
+		if err = dbMgr.Db.Migrator().DropTable(model); err != nil {
 			return fmt.Errorf("failed to drop table for model %T: %w", model, err)
 		}
 	}

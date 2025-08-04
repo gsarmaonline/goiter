@@ -31,8 +31,8 @@ func NewApp(srv *core.Server) (app *App, err error) {
 	app = &App{
 		Server: srv,
 	}
-	app.DbMgr.RegisterModels("model_one", &ModelOne{})
-	app.DbMgr.RegisterModels("model_two", &ModelTwo{})
+	app.DbMgr.RegisterModels(&ModelOne{})
+	app.DbMgr.RegisterModels(&ModelTwo{})
 
 	app.Handler.OpenRouteGroup.GET("/app_ping", app.Ping)
 	app.Handler.ProtectedRouteGroup.GET("/app_protected_ping", app.Ping)
