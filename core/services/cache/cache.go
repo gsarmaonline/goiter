@@ -5,7 +5,7 @@ import (
 )
 
 type Cache struct {
-	pool *redis.Pool
+	Pool *redis.Pool
 }
 
 func NewCache() *Cache {
@@ -18,5 +18,5 @@ func NewCache() *Cache {
 		},
 	}
 
-	return &Cache{pool: redisPool}
+	return &Cache{Pool: redisPool}
 }
