@@ -14,3 +14,10 @@ type Profile struct {
 	JobTitle    string `json:"job_title"`
 	Department  string `json:"department"`
 }
+
+func (p Profile) GetConfig() ModelConfig {
+	return ModelConfig{
+		Name:      "Profile",
+		ScopeType: AccountScopeType,
+	}
+}

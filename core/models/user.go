@@ -40,6 +40,13 @@ type User struct {
 	Profile Profile `json:"-" gorm:"foreignKey:UserID"`
 }
 
+func (u User) GetConfig() ModelConfig {
+	return ModelConfig{
+		Name:      "User",
+		ScopeType: AccountScopeType,
+	}
+}
+
 // AfterCreate hook to create a profile and account when a new user is created
 func (u *User) AfterCreate(tx *gorm.DB) error {
 	// Create profile

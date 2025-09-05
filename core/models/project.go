@@ -44,6 +44,20 @@ type (
 	}
 )
 
+func (p Project) GetConfig() ModelConfig {
+	return ModelConfig{
+		Name:      "Project",
+		ScopeType: AccountScopeType,
+	}
+}
+
+func (p Permission) GetConfig() ModelConfig {
+	return ModelConfig{
+		Name:      "Permission",
+		ScopeType: AccountScopeType,
+	}
+}
+
 func (p *Project) BeforeCreate(tx *gorm.DB) (err error) {
 	// Set default role access for the project
 	for _, roleAccess := range p.GetDefaultRoleAccessRows() {

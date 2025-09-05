@@ -21,16 +21,21 @@ const (
 	WildcardResourceType         = "*"
 	WildcardResourceID           = 0
 	WildcardAction       ActionT = "*"
+
+	// Scope types
+	AccountScopeType ScopeTypeT = "account_scope"
+	ProjectScopeType ScopeTypeT = "account_scope"
 )
 
 type (
-	ActionT string
+	ActionT    string
+	ScopeTypeT string
 	// RoleAccess represents a user's permission level in a project
 	// A User can access the resource if they have the permission level for the resource.
 	// The permission level of the user is defined by the ProjectPermission table.
 	// By default, if there is no corresponding role access entry, then the user has no access to the resource.
 	RoleAccess struct {
-		gorm.Model
+		BaseModelWithoutUser
 
 		// If the ResourceType is empty, then it becomes applicable to all resources unless
 		// there is another entry for a specific resource type.
@@ -45,9 +50,22 @@ type (
 		// If the ProjectID is 0, then it becomes applicable to all projects unless
 		ProjectID uint `json:"project_id"`
 
+		// Scope is used to identify the actual scope where the rules for access
+		// will be applied to. For example, a scope can be for the entire account,
+		// or a project, or any other group
+		ScopeType ScopeTypeT `json:"scope_type"`
+		ScopeID   uint       `json:"scope_id"`
+
 		Action ActionT `json:"action" gorm:"not null"`
 	}
 )
+
+func (r RoleAccess) GetConfig() ModelConfig {
+	return ModelConfig{
+		Name:      "RoleAccess",
+		ScopeType: AccountScopeType,
+	}
+}
 
 func CanAccessResource(db *gorm.DB,
 	resourceType string,

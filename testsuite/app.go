@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gsarmaonline/goiter/core"
@@ -27,12 +28,28 @@ type (
 	}
 )
 
+func (c ModelOne) GetConfig() models.ModelConfig {
+	return models.ModelConfig{
+		Name:      "ModelOne",
+		ScopeType: models.ProjectScopeType,
+	}
+}
+
+func (c ModelTwo) GetConfig() models.ModelConfig {
+	return models.ModelConfig{
+		Name:      "ModelTwo",
+		ScopeType: models.ProjectScopeType,
+	}
+}
+
 func NewApp(srv *core.Server) (app *App, err error) {
 	app = &App{
 		Server: srv,
 	}
-	app.DbMgr.RegisterModels(&ModelOne{})
-	app.DbMgr.RegisterModels(&ModelTwo{})
+	if err = app.DbMgr.RegisterModels([]models.UserOwnedModel{&ModelOne{}, &ModelTwo{}}); err != nil {
+		log.Println(err)
+		os.Exit(-1)
+	}
 
 	app.Handler.OpenRouteGroup.GET("/app_ping", app.Ping)
 	app.Handler.ProtectedRouteGroup.GET("/app_protected_ping", app.Ping)

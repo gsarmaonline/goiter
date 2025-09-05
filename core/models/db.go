@@ -3,6 +3,7 @@ package models
 import (
 	"fmt"
 	"log"
+	"reflect"
 
 	"github.com/gsarmaonline/goiter/config"
 	"gorm.io/driver/postgres"
@@ -16,7 +17,7 @@ const (
 )
 
 var (
-	Models = []interface{}{
+	Models = []UserOwnedModel{
 		&User{},
 		&Profile{},
 		&Account{},
@@ -43,7 +44,7 @@ type (
 		dbName    string
 		dbSSLMode string
 
-		models []interface{}
+		models map[string]UserOwnedModel
 
 		dbType config.DbTypeT
 	}
@@ -55,7 +56,10 @@ func NewDbManager(cfg *config.Config) (dbMgr *DbManager, err error) {
 		gormCfg: &gorm.Config{
 			Logger: logger.Default.LogMode(logger.Silent),
 		},
-		models: Models,
+		models: make(map[string]UserOwnedModel),
+	}
+	if err = dbMgr.RegisterModels(Models); err != nil {
+		return
 	}
 	if err = dbMgr.Validate(); err != nil {
 		return
@@ -70,8 +74,37 @@ func NewDbManager(cfg *config.Config) (dbMgr *DbManager, err error) {
 	return
 }
 
-func (dbMgr *DbManager) RegisterModels(model interface{}) (err error) {
-	dbMgr.models = append(dbMgr.models, model)
+func (dbMgr *DbManager) GetModelByType(modelName string) (model interface{}, err error) {
+	for _, dbModel := range dbMgr.GetModels() {
+		if userOwnedModel, ok := dbModel.(UserOwnedModel); !ok {
+			continue
+		} else {
+			if userOwnedModel.GetConfig().Name == modelName {
+				model = userOwnedModel
+				return
+			}
+		}
+	}
+	err = fmt.Errorf("no model found by the name %s", modelName)
+	return
+}
+
+func (dbMgr *DbManager) GetModels() (models []UserOwnedModel) {
+	for _, model := range dbMgr.models {
+		models = append(models, model)
+	}
+	return
+}
+
+func (dbMgr *DbManager) RegisterModels(models []UserOwnedModel) (err error) {
+	for _, model := range models {
+		name := model.GetConfig().Name
+		if name == "" {
+			err = fmt.Errorf("model name is required. Please set it in ModelConfig for model %v", reflect.TypeOf(model))
+			return
+		}
+		dbMgr.models[model.GetConfig().Name] = model
+	}
 	return
 }
 
@@ -124,7 +157,12 @@ func (dbMgr *DbManager) Setup() (err error) {
 	if dbMgr.cfg.Mode == config.ModeDev {
 		dbMgr.DropModels()
 	}
-	if err = dbMgr.Db.AutoMigrate(dbMgr.models...); err != nil {
+	models := dbMgr.GetModels()
+	var ifaceModels []interface{}
+	for _, m := range models {
+		ifaceModels = append(ifaceModels, m)
+	}
+	if err = dbMgr.Db.AutoMigrate(ifaceModels...); err != nil {
 		return
 	}
 	return
@@ -139,7 +177,7 @@ func (dbMgr *DbManager) PostMigrate() (err error) {
 
 func (dbMgr *DbManager) DropModels() (err error) {
 	log.Println("Dropping all models")
-	for _, model := range dbMgr.models {
+	for _, model := range dbMgr.GetModels() {
 		if err = dbMgr.Db.Migrator().DropTable(model); err != nil {
 			return fmt.Errorf("failed to drop table for model %T: %w", model, err)
 		}

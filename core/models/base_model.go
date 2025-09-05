@@ -9,7 +9,7 @@ type (
 		GetID() uint
 		GetUserID() uint
 		SetUserID(uint)
-		GetDefaultRoleAccessRows() []*RoleAccess
+		GetConfig() ModelConfig
 	}
 	BaseModel struct {
 		ID        uint      `json:"id" gorm:"primary_key"`
@@ -26,6 +26,10 @@ type (
 	}
 	BaseModelWithoutUser struct {
 		BaseModel
+	}
+	ModelConfig struct {
+		Name      string     `json:"name"`
+		ScopeType ScopeTypeT `json:"scope_type"`
 	}
 )
 
@@ -47,6 +51,12 @@ func (b *BaseModelWithoutUser) SetUserID(userID uint) {
 
 func (b *BaseModel) GetID() uint {
 	return b.ID
+}
+
+func (b *BaseModel) GetConfig() ModelConfig {
+	return ModelConfig{
+		ScopeType: ProjectScopeType,
+	}
 }
 
 func (b *BaseModel) GetDefaultRoleAccessRows() (roleAccessRows []*RoleAccess) {

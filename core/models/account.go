@@ -28,6 +28,13 @@ type Account struct {
 	SubscriptionStatus   string `json:"subscription_status" gorm:"default:'active'"`
 }
 
+func (a Account) GetConfig() ModelConfig {
+	return ModelConfig{
+		Name:      "Account",
+		ScopeType: AccountScopeType,
+	}
+}
+
 // BeforeCreate is a GORM hook that ensures new accounts have the free plan
 func (a *Account) BeforeCreate(tx *gorm.DB) error {
 	plan, err := GetDefaultPlan(tx)

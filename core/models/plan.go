@@ -41,10 +41,33 @@ type (
 	// PlanFeature is the explicit join table for the many-to-many relationship
 	// between Plan and Feature, ensuring correct table and constraint creation.
 	PlanFeature struct {
+		BaseModelWithoutUser
+
 		PlanID    uint `gorm:"primaryKey"`
 		FeatureID uint `gorm:"primaryKey"`
 	}
 )
+
+func (p Plan) GetConfig() ModelConfig {
+	return ModelConfig{
+		Name:      "Plan",
+		ScopeType: AccountScopeType,
+	}
+}
+
+func (p Feature) GetConfig() ModelConfig {
+	return ModelConfig{
+		Name:      "Feature",
+		ScopeType: AccountScopeType,
+	}
+}
+
+func (p PlanFeature) GetConfig() ModelConfig {
+	return ModelConfig{
+		Name:      "PlanFeature",
+		ScopeType: AccountScopeType,
+	}
+}
 
 func GetDefaultPlan(db *gorm.DB) (plan *Plan, err error) {
 	plan = &Plan{}
