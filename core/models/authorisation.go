@@ -6,9 +6,6 @@ import (
 	"gorm.io/gorm"
 )
 
-// Pending Items
-// - Implement scope of the RoleAccess. It can be for a project or account
-
 const (
 	// Actions
 	ReadAction   ActionT = "read"

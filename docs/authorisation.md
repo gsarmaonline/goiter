@@ -98,8 +98,78 @@ for every element. However, having the right indexes in a single model will resu
 
 Having different Group elements can allow us to store different metadata per element.
 
-### Note
+## Ownership
 
-- Have separate rules to govern for owners of objects
-- Should we have separate group models for different elements or a single group model for all the elements
-  with an identifier?
+The Ownership of an object can be defined as an user which can perform all operations on the object.
+How is this different then the above mentioned rules?
+
+In most apps, there are implicit rules that regard the creator of an object to be the owner of the object
+and should have all possible actions on the object.
+
+Based on the above representation, if we can define specific `RuleAccess` rules for the user who created the
+object. However, this means that we need to have 1 additional rule for every object.
+
+This brings us to the topic of having explicit rules vs implicit rules.
+Since this is an app which tries to leverage convention over configuration, implicit rules should be available
+to the users as well.
+
+### Implicit rules
+
+Implicit rules should be checked in the `canAccess` method which is the entrypoint for the authorisation checks.
+Implicit rules can also be defined as more of a configuration than a rule.
+
+List of implicit rules
+
+- Enable ownership access
+
+## Scope
+
+In every app, there are different kinds of scopes like projects, accounts, etc which provides the encapsulation required
+for that level.
+For example, if we take `Account` into instance, it's similar to a tenant and the border of this area shouldn't be
+crossed by the user accounts.
+Then we also have more subscoping in an account using projects. The access rules of a project can be different.
+Taking the example of the billing table again, a developer may be able to query some tables but they shouldn't be able
+to query the `billing` model of the project.
+
+There are some rules which apply to the entire system as a whole. For example, if I want to create a super user which
+can mimic the login of any of the accounts, then there should be a a `RoleAccess` rule applicable for all accounts.
+
+Few questions:
+
+- Should we be able to add arbitrary scopes or should it be defined based on specific models?
+
+### Approach 1
+
+Let's add `scope_type` and `scope_id` to the `RuleAccess` model.
+To define rules at the `Account` level for a specific, we add the `scope` as `Account` and `scope_id` of the account.
+
+Now, let's try to define rules on who can create a `Project` and who can add members to the project.
+The `canAccess` method receives the user and the object.
+From the object, the `scope` of the object can be fetched. For `Project`, the scope has to be defined as `Account` and the
+project should also return the account it is linked to via the `scope_id`.
+The `canAccess` method searches for the matching rule with `scope_type` of `Account` and the account's `scope_id` as an additional filter.
+
+If we are adding `scope` to the `RuleAccess` model, we also need to add it to the `Group` model. This allows us to
+create sub groups for different scopes as well.
+
+Root scopes have to be defined, ie where it applies to all objects.
+
+### Identifying the Scope of an object
+
+This section explains the process that can be used in identifying the scope of an object.
+
+There are 2 possible options here:
+
+- Every object refers to the actual scope directly
+- They refer to the parent object as the scope and the actual scope is recursively
+  discovered by going up the stack of the ancestors
+
+## Implementation
+
+Define a method which gets called for every type of access.
+
+```go
+func canAccess(user *User, resourceType string, resourceID uint, action ActionType) bool {
+}
+```
