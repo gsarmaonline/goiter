@@ -106,7 +106,7 @@ How is this different then the above mentioned rules?
 In most apps, there are implicit rules that regard the creator of an object to be the owner of the object
 and should have all possible actions on the object.
 
-Based on the above representation, if we can define specific `RuleAccess` rules for the user who created the
+Based on the above representation, if we can define specific `RoleAccess` rules for the user who created the
 object. However, this means that we need to have 1 additional rule for every object.
 
 This brings us to the topic of having explicit rules vs implicit rules.
@@ -135,13 +135,7 @@ to query the `billing` model of the project.
 There are some rules which apply to the entire system as a whole. For example, if I want to create a super user which
 can mimic the login of any of the accounts, then there should be a a `RoleAccess` rule applicable for all accounts.
 
-Few questions:
-
-- Should we be able to add arbitrary scopes or should it be defined based on specific models?
-
-### Approach 1
-
-Let's add `scope_type` and `scope_id` to the `RuleAccess` model.
+Let's add `scope_type` and `scope_id` to the `RoleAccess` model.
 To define rules at the `Account` level for a specific, we add the `scope` as `Account` and `scope_id` of the account.
 
 Now, let's try to define rules on who can create a `Project` and who can add members to the project.
@@ -150,10 +144,10 @@ From the object, the `scope` of the object can be fetched. For `Project`, the sc
 project should also return the account it is linked to via the `scope_id`.
 The `canAccess` method searches for the matching rule with `scope_type` of `Account` and the account's `scope_id` as an additional filter.
 
-If we are adding `scope` to the `RuleAccess` model, we also need to add it to the `Group` model. This allows us to
+If we are adding `scope` to the `RoleAccess` model, we also need to add it to the `Group` model. This allows us to
 create sub groups for different scopes as well.
 
-Root scopes have to be defined, ie where it applies to all objects.
+Root scopes are the scopes which applies to all objects, irrespective of the tenancy.
 
 ### Identifying the Scope of an object
 
