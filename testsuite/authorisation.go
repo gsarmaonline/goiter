@@ -31,7 +31,7 @@ func (as *AuthorisationScenario) createAuthUsers() (err error) {
 		Email: "auth_user@sample.com",
 	})
 	for _, user := range as.users {
-		if err = as.gc.Login(user.Email); err != nil {
+		if _, err = as.gc.Login(user.Email); err != nil {
 			return fmt.Errorf("failed to create user %s: %w", user.Email, err)
 		}
 	}

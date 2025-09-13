@@ -58,17 +58,17 @@ func (c *GoiterClient) shortCircuitLogin(baseURL, email string) (token string, e
 }
 
 // Login initiates the Google OAuth flow
-func (c *GoiterClient) Login(email string) error {
+func (c *GoiterClient) Login(email string) (map[string]interface{}, error) {
 	fmt.Println("🔐 Goiter Client Login")
 	var (
 		jwtToken string
 		err      error
 	)
 	if jwtToken, err = c.shortCircuitLogin(c.BaseURL, email); err != nil {
-		return fmt.Errorf("failed to login: %v", err)
+		return nil, fmt.Errorf("failed to login: %v", err)
 	}
 	if jwtToken == "" {
-		return fmt.Errorf("no jwt token provided")
+		return nil, fmt.Errorf("no jwt token provided")
 	}
 
 	// Set the session cookie
@@ -78,11 +78,11 @@ func (c *GoiterClient) Login(email string) error {
 	fmt.Println("\n🔄 Testing authentication for user", email)
 	user, err := c.GetUser()
 	if err != nil {
-		return fmt.Errorf("authentication failed: %v", err)
+		return nil, fmt.Errorf("authentication failed: %v", err)
 	}
 
 	fmt.Println("✅ Login successful! Welcome", user["email"])
-	return nil
+	return user, nil
 }
 
 // Logout clears the session
@@ -105,7 +105,7 @@ func (c *GoiterClient) Logout() (err error) {
 }
 
 func (c *GoiterClient) RunUserSuite() (err error) {
-	if err = c.Login(c.users["root"].Email); err != nil {
+	if _, err = c.Login(c.users["root"].Email); err != nil {
 		log.Println("Login failed:", err)
 		return
 	}

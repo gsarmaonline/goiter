@@ -17,20 +17,21 @@ type (
 	Group struct {
 		BaseModelWithUser
 
-		Name      string       `json:"name"`
-		GroupType ElementTypeT `json:"group_type"`
+		Name        string       `json:"name"`
+		Description string       `json:"description"`
+		MemberType  ElementTypeT `json:"member_type"`
 	}
 
 	GroupMember struct {
-		BaseModelWithoutUser
+		BaseModelWithUser
 
-		GroupID   uint         `json:"group_id"`
-		GroupType ElementTypeT `json:"group_type"`
-		MemberID  uint         `json:"member_id"`
+		GroupID    uint         `json:"group_id"`
+		MemberType ElementTypeT `json:"member_type"`
+		MemberID   uint         `json:"member_id"`
 	}
 
 	GroupParent struct {
-		BaseModelWithoutUser
+		BaseModelWithUser
 
 		GroupID       uint `json:"group_id"`
 		ParentGroupID uint `json:"parent_group_id"`
@@ -42,6 +43,20 @@ type (
 		model UserOwnedModel
 	}
 )
+
+func (group Group) GetConfig() ModelConfig {
+	return ModelConfig{
+		Name:      "Group",
+		ScopeType: AccountScopeType,
+	}
+}
+
+func (groupMember GroupMember) GetConfig() ModelConfig {
+	return ModelConfig{
+		Name:      "GroupMember",
+		ScopeType: AccountScopeType,
+	}
+}
 
 func (group *Group) GetGroupsTillRoot(tx *gorm.DB, existingGroups []*Group) (err error) {
 	tmpGroups := []*Group{}

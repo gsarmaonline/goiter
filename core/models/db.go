@@ -26,6 +26,8 @@ var (
 		&Plan{},
 		&Feature{},
 		&PlanFeature{},
+		&Group{},
+		&GroupMember{},
 	}
 )
 

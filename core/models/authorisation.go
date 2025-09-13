@@ -40,12 +40,14 @@ type (
 
 	Authorisation struct {
 		AllowImplicitOwnerAccess bool
+		IsEnabled                bool
 	}
 )
 
 func NewAuthorisation() *Authorisation {
 	return &Authorisation{
 		AllowImplicitOwnerAccess: true,
+		IsEnabled:                false,
 	}
 }
 
@@ -59,6 +61,10 @@ func (a *Authorisation) CanAccessResource(db *gorm.DB,
 	var (
 		err error
 	)
+
+	if a.IsEnabled == false {
+		return true
+	}
 
 	// If the accessor is the owner of the resource, allow access
 	if a.AllowImplicitOwnerAccess && resource.GetUserID() == accessor.GetID() {

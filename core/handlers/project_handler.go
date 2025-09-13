@@ -3,7 +3,6 @@ package handlers
 import (
 	"log"
 	"net/http"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gsarmaonline/goiter/core/models"
@@ -97,14 +96,9 @@ func (h *ProjectHandler) CreateProject(c *gin.Context) {
 
 // GetProject retrieves a project by ID
 func (h *ProjectHandler) GetProject(c *gin.Context) {
-	projectID, err := strconv.ParseUint(c.Param("id"), 10, 32)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid project ID"})
-		return
-	}
-
 	var project models.Project
-	if err := h.db.Preload("User").Preload("Members").First(&project, projectID).Error; err != nil {
+
+	if err := h.handler.GetModelFromUrl(c, &project, DefaultUrlKeyName); err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Project not found"})
 		return
 	}
@@ -114,14 +108,10 @@ func (h *ProjectHandler) GetProject(c *gin.Context) {
 
 // UpdateProject updates a project
 func (h *ProjectHandler) UpdateProject(c *gin.Context) {
-	projectID, err := strconv.ParseUint(c.Param("id"), 10, 32)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid project ID"})
-		return
-	}
 
 	var project models.Project
-	if err := h.db.First(&project, projectID).Error; err != nil {
+
+	if err := h.handler.GetModelFromUrl(c, &project, DefaultUrlKeyName); err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Project not found"})
 		return
 	}
@@ -154,13 +144,14 @@ func (h *ProjectHandler) UpdateProject(c *gin.Context) {
 
 // DeleteProject deletes a project
 func (h *ProjectHandler) DeleteProject(c *gin.Context) {
-	projectID, err := strconv.ParseUint(c.Param("id"), 10, 32)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid project ID"})
+	var project models.Project
+
+	if err := h.handler.GetModelFromUrl(c, &project, DefaultUrlKeyName); err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Project not found"})
 		return
 	}
 
-	if err := h.db.Delete(&models.Project{}, projectID).Error; err != nil {
+	if err := h.db.Delete(&models.Project{}, project.ID).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete project"})
 		return
 	}
@@ -170,9 +161,10 @@ func (h *ProjectHandler) DeleteProject(c *gin.Context) {
 
 // AddProjectMember adds a user to a project with a specific permission level
 func (h *ProjectHandler) AddProjectMember(c *gin.Context) {
-	projectID, err := strconv.ParseUint(c.Param("id"), 10, 32)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid project ID"})
+	var project models.Project
+
+	if err := h.handler.GetModelFromUrl(c, &project, DefaultUrlKeyName); err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Project not found"})
 		return
 	}
 
@@ -188,7 +180,7 @@ func (h *ProjectHandler) AddProjectMember(c *gin.Context) {
 
 	// Create the permission
 	permission := models.Permission{
-		ProjectID: uint(projectID),
+		ProjectID: uint(project.ID),
 		UserEmail: input.UserEmail,
 		Level:     input.Level,
 	}
@@ -204,30 +196,14 @@ func (h *ProjectHandler) AddProjectMember(c *gin.Context) {
 
 // RemoveProjectMember removes a user from a project
 func (h *ProjectHandler) RemoveProjectMember(c *gin.Context) {
-	projectID, err := strconv.ParseUint(c.Param("id"), 10, 32)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid project ID"})
-		return
-	}
-
-	memberID, err := strconv.ParseUint(c.Param("user_id"), 10, 32)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user ID"})
-		return
-	}
-
-	// Don't allow removing the owner
 	var project models.Project
-	if err := h.db.First(&project, projectID).Error; err != nil {
+
+	if err := h.handler.GetModelFromUrl(c, &project, DefaultUrlKeyName); err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Project not found"})
 		return
 	}
-	if uint(memberID) == project.UserID {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Cannot remove the project owner"})
-		return
-	}
 
-	if err := h.handler.UserScopedDB(c).Where("project_id = ?", projectID).Delete(&models.Permission{}).Error; err != nil {
+	if err := h.handler.UserScopedDB(c).Where("project_id = ?", project.ID).Delete(&models.Permission{}).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to remove project member"})
 		return
 	}

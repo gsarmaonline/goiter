@@ -26,79 +26,81 @@ func NewGroupHandler(handler *Handler) *GroupHandler {
 }
 
 func (h *GroupHandler) ListGroups(c *gin.Context) {
-
-	var groups []models.Group
-	if err := h.handler.UserScopedDB(c).Preload("GroupMembers").Find(&groups).Error; err != nil {
+	groups := []*models.Group{}
+	if err := h.handler.UserScopedDB(c).Find(&groups).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Groups not found"})
 		return
 	}
-
 	h.handler.WriteSuccess(c, groups)
 }
 
 func (h *GroupHandler) GetGroup(c *gin.Context) {
-
 	var group models.Group
-	if err := h.handler.UserScopedDB(c).Preload("GroupMembers").First(&group).Error; err != nil {
+	if err := h.handler.GetModelFromUrl(c, &group, DefaultUrlKeyName); err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Group not found"})
 		return
 	}
-
 	h.handler.WriteSuccess(c, group)
 }
 
 func (h *GroupHandler) CreateGroup(c *gin.Context) {
-
 	var (
 		group models.Group
 	)
-
 	if err := c.ShouldBindJSON(&group); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
 		return
 	}
-
 	if err := h.handler.CreateWithUser(c, &group); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-
 	h.handler.WriteSuccess(c, group)
 }
 
 func (h *GroupHandler) AddGroupMember(c *gin.Context) {
 	var (
 		groupMember models.GroupMember
+		group       models.Group
 	)
-
+	if err := h.handler.GetModelFromUrl(c, &group, DefaultUrlKeyName); err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Group not found"})
+		return
+	}
 	if err := c.ShouldBindJSON(&groupMember); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
 		return
 	}
-
 	if err := h.handler.CreateWithUser(c, &groupMember); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-
 	h.handler.WriteSuccess(c, groupMember)
 }
 
 func (h *GroupHandler) RemoveGroupMember(c *gin.Context) {
 	var (
 		groupMember models.GroupMember
+		group       models.Group
 	)
-
+	if err := h.handler.GetModelFromUrl(c, &group, DefaultUrlKeyName); err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Group not found"})
+		return
+	}
 	if err := c.ShouldBindJSON(&groupMember); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
 		return
 	}
+	if err := h.handler.UserScopedDB(c).Where("group_id = ? AND member_id = ? AND member_type = ?",
+		group.ID, groupMember.MemberID, groupMember.MemberType).First(&groupMember).Error; err != nil {
 
+		c.JSON(http.StatusNotFound, gin.H{"error": "Group member not found"})
+		return
+	}
 	if err := h.handler.DeleteWithUser(c, &groupMember); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-
 	h.handler.WriteSuccess(c, groupMember)
 }
 

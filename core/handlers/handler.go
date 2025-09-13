@@ -74,6 +74,7 @@ func (h *Handler) setupAuthRoutes() {
 		projectHandler := NewProjectHandler(h)
 		accountHandler := NewAccountHandler(h)
 		billingHandler := NewBillingHandler(h)
+		groupHandler := NewGroupHandler(h)
 
 		// Project routes
 		projectRoutes := h.ProtectedRouteGroup.Group("/projects")
@@ -100,6 +101,17 @@ func (h *Handler) setupAuthRoutes() {
 			billingRoutes.POST("/subscriptions", billingHandler.CreateSubscription)
 			billingRoutes.DELETE("/subscriptions", billingHandler.CancelSubscription)
 			billingRoutes.GET("/subscriptions", billingHandler.GetSubscriptionStatus)
+		}
+
+		// Group routes
+		groupRoutes := h.ProtectedRouteGroup.Group("/groups")
+		{
+			groupRoutes.POST("", groupHandler.CreateGroup)
+			groupRoutes.GET("", groupHandler.ListGroups)
+			groupRoutes.GET("/:id", groupHandler.GetGroup)
+			groupRoutes.DELETE("/:id", groupHandler.DeleteGroup)
+			groupRoutes.POST("/:id/members", groupHandler.AddGroupMember)
+			groupRoutes.DELETE("/:id/members", groupHandler.RemoveGroupMember)
 		}
 
 		h.OpenRouteGroup.GET("/plans", h.GetPlans)
