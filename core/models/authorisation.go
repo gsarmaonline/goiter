@@ -1,153 +1,108 @@
 package models
 
-import (
-	"log"
-
-	"gorm.io/gorm"
-)
+import "gorm.io/gorm"
 
 const (
-	// Actions
+	// Action types
 	ReadAction   ActionT = "read"
-	WriteAction  ActionT = "write"
-	DeleteAction ActionT = "delete"
-	UpdateAction ActionT = "update"
 	CreateAction ActionT = "create"
-
-	// Wildcards
-	WildcardResourceType         = "*"
-	WildcardResourceID           = 0
-	WildcardAction       ActionT = "*"
+	UpdateAction ActionT = "update"
+	DeleteAction ActionT = "delete"
 
 	// Scope types
-	AccountScopeType ScopeTypeT = "account_scope"
-	ProjectScopeType ScopeTypeT = "account_scope"
+	ProjectScopeType ScopeTypeT = "Project"
+	AccountScopeType ScopeTypeT = "Account"
 )
 
 type (
-	ActionT    string
 	ScopeTypeT string
-	// RoleAccess represents a user's permission level in a project
-	// A User can access the resource if they have the permission level for the resource.
-	// The permission level of the user is defined by the ProjectPermission table.
-	// By default, if there is no corresponding role access entry, then the user has no access to the resource.
+	ElementT   string
+	ActionT    string
+
 	RoleAccess struct {
-		BaseModelWithoutUser
+		gorm.Model
 
-		// If the ResourceType is empty, then it becomes applicable to all resources unless
-		// there is another entry for a specific resource type.
-		ResourceType string `json:"resource_type" gorm:"not null"`
-		// If the ResourceID is 0 and the ResourceType is not empty, then it becomes applicable to all resources of the given type unless
-		// there is another entry for a specific resource ID.
-		ResourceID uint `json:"resource_id"`
+		AccessorType ElementT
+		AccessorID   uint
 
-		Level PermissionLevel `json:"level" gorm:"not null;default:1"`
+		ResourceType ElementT
+		ResourceID   uint
 
-		// ProjectID can be used to scope the access to a specific project.
-		// If the ProjectID is 0, then it becomes applicable to all projects unless
-		ProjectID uint `json:"project_id"`
+		Scope
 
-		// Scope is used to identify the actual scope where the rules for access
-		// will be applied to. For example, a scope can be for the entire account,
-		// or a project, or any other group
-		ScopeType ScopeTypeT `json:"scope_type"`
-		ScopeID   uint       `json:"scope_id"`
+		Action ActionT
+	}
 
-		Action ActionT `json:"action" gorm:"not null"`
+	Scope struct {
+		ScopeType string
+		ScopeID   uint
+	}
+
+	Authorisation struct {
+		AllowImplicitOwnerAccess bool
 	}
 )
 
-func (r RoleAccess) GetConfig() ModelConfig {
-	return ModelConfig{
-		Name:      "RoleAccess",
-		ScopeType: AccountScopeType,
+func NewAuthorisation() *Authorisation {
+	return &Authorisation{
+		AllowImplicitOwnerAccess: true,
 	}
 }
 
-func CanAccessResource(db *gorm.DB,
-	resourceType string,
-	resourceID uint,
-	user *User,
-	action ActionT,
-) bool {
-	// Get User's level in the project
+func (a *Authorisation) getQueryString() string {
+	return "accessor_type = ? AND accessor_id = ? AND resource_type = ? AND resource_id = ? AND action = ? AND scope_type = ? AND scope_id = ?"
+}
+
+func (a *Authorisation) CanAccessResource(db *gorm.DB,
+	accessor *User, resource UserOwnedModel, action ActionT, scope Scope) bool {
+
 	var (
-		projectPermission Permission
+		err error
 	)
-	db.Where("user_id = ?", user.ID).First(&projectPermission)
 
-	for _, permissionScope := range formPermissionScopes(resourceType, resourceID, action) {
-		var (
-			allowAccess   bool
-			proceedToNext bool
-		)
-		if allowAccess, proceedToNext = formRoleAccessQuery(
-			db,
-			permissionScope.ResourceType,
-			permissionScope.ResourceID,
-			permissionScope.Action,
-			projectPermission.Level,
-		); allowAccess {
-			// If we found a matching role access entry, we can return true
-			log.Println("Access granted for resource:",
-				permissionScope.ResourceType,
-				permissionScope.ResourceID,
-				"with action:",
-				permissionScope.Action,
-			)
-			return true
-		}
-		if !proceedToNext {
-			// If we found a matching role access entry but it doesn't allow access, we can
-			// stop checking further scopes
-			return false
-		}
+	// If the accessor is the owner of the resource, allow access
+	if a.AllowImplicitOwnerAccess && resource.GetUserID() == accessor.GetID() {
+		return true
 	}
 
-	return false
-}
-
-func formPermissionScopes(resourceType string, resourceID uint, action ActionT) []RoleAccess {
-	return []RoleAccess{
-		{
-			ResourceType: resourceType,
-			ResourceID:   resourceID,
-			Action:       action,
-		},
-		{
-			ResourceType: resourceType,
-			ResourceID:   WildcardResourceID,
-			Action:       action,
-		},
-		{
-			ResourceType: WildcardResourceType,
-			ResourceID:   WildcardResourceID,
-			Action:       action,
-		},
-		{
-			ResourceType: WildcardResourceType,
-			ResourceID:   WildcardResourceID,
-			Action:       WildcardAction,
-		},
-	}
-}
-
-func formRoleAccessQuery(db *gorm.DB,
-	resourceType string,
-	resourceID uint,
-	action ActionT,
-	level PermissionLevel,
-) (allowAccess bool, proceedToNext bool) {
-
-	proceedToNext = true
 	roleAccess := &RoleAccess{}
-
-	db.Where("resource_type = ? AND resource_id = ? AND action = ?", resourceType, resourceID, action).First(&roleAccess)
-
+	db.Where(a.getQueryString(),
+		"User", accessor.GetID(), resource.GetConfig().Name,
+		resource.GetID(), action, scope.ScopeType, scope.ScopeID,
+	).First(roleAccess)
 	if roleAccess.ID != 0 {
-		allowAccess = roleAccess.Level >= level
-		proceedToNext = false
-		return
+		return true
 	}
-	return
+
+	possibleAccessorGroups := []*Group{}
+	possibleResourceGroups := []*Group{}
+
+	if possibleAccessorGroups, err = NewGroupFetcher(db, accessor).GetGroups(); err != nil {
+		return false
+	}
+	if possibleResourceGroups, err = NewGroupFetcher(db, resource).GetGroups(); err != nil {
+		return false
+	}
+
+	return a.compareWithGroups(db, possibleAccessorGroups, possibleResourceGroups, action, scope)
+}
+
+func (a *Authorisation) compareWithGroups(db *gorm.DB, accessorGroups, resourceGroups []*Group, action ActionT, scope Scope) bool {
+	for _, ag := range accessorGroups {
+		for _, rg := range resourceGroups {
+			roleAccess := RoleAccess{}
+			// Check role access for this accessor group and resource group
+			// If they match, allow access
+			db.Where(a.getQueryString(),
+				"Group", ag.GetID(), "Group", rg.GetID(),
+				action, scope.ScopeType, scope.ScopeID,
+			).First(&roleAccess)
+
+			// If role access is found, allow access
+			if roleAccess.ID != 0 {
+				return true
+			}
+		}
+	}
+	return false
 }

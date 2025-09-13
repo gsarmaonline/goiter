@@ -58,16 +58,3 @@ func (b *BaseModel) GetConfig() ModelConfig {
 		ScopeType: ProjectScopeType,
 	}
 }
-
-func (b *BaseModel) GetDefaultRoleAccessRows() (roleAccessRows []*RoleAccess) {
-	// Default permissions can be overridden in the model
-	roleAccessRows = []*RoleAccess{
-		{
-			ResourceType: WildcardResourceType,
-			ResourceID:   WildcardResourceID,
-			Action:       WildcardAction,
-			Level:        PermissionAdmin,
-		},
-	}
-	return
-}

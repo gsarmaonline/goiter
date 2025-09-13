@@ -17,8 +17,7 @@ type (
 		db *gorm.DB
 	}
 	SeedData struct {
-		Plans        []Plan       `json:"plans"`
-		RoleAccesses []RoleAccess `json:"role_accesses"`
+		Plans []Plan `json:"plans"`
 	}
 )
 
@@ -37,20 +36,6 @@ func (seeder *Seeder) SeedPlans(seedData SeedData) (err error) {
 	return
 }
 
-func (seeder *Seeder) SeedRoleAccesses(seedData SeedData) (err error) {
-	log.Println("Seeding role accesses...", len(seedData.RoleAccesses))
-	for _, roleAccess := range seedData.RoleAccesses {
-		if err = seeder.db.FirstOrCreate(&roleAccess, RoleAccess{
-			ResourceType: roleAccess.ResourceType,
-			ResourceID:   roleAccess.ResourceID,
-			Action:       roleAccess.Action,
-		}).Error; err != nil {
-			return
-		}
-	}
-	return
-}
-
 func (seeder *Seeder) Seed() (err error) {
 	seedData := SeedData{}
 	seedDataBytes, err := os.ReadFile(SeedFile)
@@ -61,9 +46,6 @@ func (seeder *Seeder) Seed() (err error) {
 		return
 	}
 	if err = seeder.SeedPlans(seedData); err != nil {
-		return
-	}
-	if err = seeder.SeedRoleAccesses(seedData); err != nil {
 		return
 	}
 	return

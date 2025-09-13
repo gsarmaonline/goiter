@@ -58,18 +58,6 @@ func (p Permission) GetConfig() ModelConfig {
 	}
 }
 
-func (p *Project) BeforeCreate(tx *gorm.DB) (err error) {
-	// Set default role access for the project
-	for _, roleAccess := range p.GetDefaultRoleAccessRows() {
-		roleAccess.ProjectID = p.ID
-		if err = tx.Create(roleAccess).Error; err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
 // BeforeDelete is a GORM hook that handles cleanup before project deletion
 func (p *Project) BeforeDelete(tx *gorm.DB) error {
 	// Remove all project permissions
@@ -103,17 +91,5 @@ func (p *Permission) BeforeCreate(tx *gorm.DB) (err error) {
 	}
 
 	p.UserID = user.ID
-	return
-}
-
-func (p *Project) GetDefaultRoleAccessRows() (roleAcceses []*RoleAccess) {
-	roleAcceses = []*RoleAccess{
-		{
-			ResourceType: WildcardResourceType,
-			ResourceID:   WildcardResourceID,
-			Action:       WildcardAction,
-			Level:        PermissionViewer,
-		},
-	}
 	return
 }

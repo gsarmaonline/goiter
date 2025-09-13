@@ -2,6 +2,8 @@ package handlers
 
 import (
 	"fmt"
+	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gsarmaonline/goiter/config"
@@ -10,12 +12,17 @@ import (
 	"gorm.io/gorm"
 )
 
+const (
+	DefaultUrlKeyName = "id"
+)
+
 type (
 	Handler struct {
-		router     *gin.Engine
-		db         *gorm.DB
-		middleware *middleware.Middleware
-		cfg        *config.Config
+		router        *gin.Engine
+		db            *gorm.DB
+		middleware    *middleware.Middleware
+		cfg           *config.Config
+		authorisation *models.Authorisation
 
 		OpenRouteGroup      *gin.RouterGroup
 		ProtectedRouteGroup *gin.RouterGroup
@@ -35,6 +42,8 @@ func NewHandler(router *gin.Engine, db *gorm.DB, cfg *config.Config) (handler *H
 	}
 	// Setup routes
 	handler.SetupRoutes()
+	// Setup authorisation
+	handler.authorisation = models.NewAuthorisation()
 	return
 }
 
@@ -140,10 +149,28 @@ func (h *Handler) UserScopedDB(c *gin.Context) (db *gorm.DB) {
 	return
 }
 
+func (h *Handler) GetModelFromUrl(c *gin.Context, userOwnedModel models.UserOwnedModel, urlKeyName string) (err error) {
+	var (
+		modelID uint64
+	)
+	if modelID, err = strconv.ParseUint(c.Param(urlKeyName), 10, 32); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid project ID"})
+		return
+	}
+	if err = h.db.First(&userOwnedModel, modelID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Project not found"})
+		return
+	}
+	if err = h.FirstWithUser(c, userOwnedModel, h.db.Where("id = ?", modelID)); err != nil {
+		return
+	}
+	return
+}
+
 func (h *Handler) FirstWithUser(c *gin.Context, userOwnedModel models.UserOwnedModel, dbQuery *gorm.DB) (err error) {
 	user := h.GetUserFromContext(c)
 	err = dbQuery.First(&userOwnedModel).Error
-	if false == models.CanAccessResource(h.db, h.GetTableName(userOwnedModel), userOwnedModel.GetID(), user, models.ReadAction) {
+	if false == h.authorisation.CanAccessResource(h.db, user, userOwnedModel, models.ReadAction, models.Scope{}) {
 		err = fmt.Errorf("unauthorized access to resource: %s", h.GetTableName(userOwnedModel))
 		return
 	}
@@ -154,7 +181,8 @@ func (h *Handler) FindWithUser(c *gin.Context, userOwnedModels []models.UserOwne
 	user := h.GetUserFromContext(c)
 	err = h.db.Where(query).Find(&userOwnedModels).Error
 	for _, model := range userOwnedModels {
-		if false == models.CanAccessResource(h.db, h.GetTableName(model), model.GetID(), user, models.ReadAction) {
+
+		if false == h.authorisation.CanAccessResource(h.db, user, model, models.ReadAction, models.Scope{}) {
 			err = fmt.Errorf("unauthorized access to resource: %s", h.GetTableName(model))
 			return
 		}
@@ -165,7 +193,7 @@ func (h *Handler) FindWithUser(c *gin.Context, userOwnedModels []models.UserOwne
 func (h *Handler) CreateWithUser(c *gin.Context, model models.UserOwnedModel) (err error) {
 	user := h.GetUserFromContext(c)
 	model.SetUserID(user.ID)
-	if false == models.CanAccessResource(h.db, h.GetTableName(model), model.GetID(), user, models.CreateAction) {
+	if false == h.authorisation.CanAccessResource(h.db, user, model, models.CreateAction, models.Scope{}) {
 		err = fmt.Errorf("unauthorized access to resource: %s", h.GetTableName(model))
 		return
 	}
@@ -176,7 +204,7 @@ func (h *Handler) CreateWithUser(c *gin.Context, model models.UserOwnedModel) (e
 func (h *Handler) UpdateWithUser(c *gin.Context, model models.UserOwnedModel, toUpdateWith interface{}) (err error) {
 	user := h.GetUserFromContext(c)
 	model.SetUserID(user.ID)
-	if false == models.CanAccessResource(h.db, h.GetTableName(model), model.GetID(), user, models.UpdateAction) {
+	if false == h.authorisation.CanAccessResource(h.db, user, model, models.UpdateAction, models.Scope{}) {
 		err = fmt.Errorf("unauthorized access to resource: %s", h.GetTableName(model))
 		return
 	}
@@ -187,7 +215,7 @@ func (h *Handler) UpdateWithUser(c *gin.Context, model models.UserOwnedModel, to
 func (h *Handler) DeleteWithUser(c *gin.Context, model models.UserOwnedModel) (err error) {
 	user := h.GetUserFromContext(c)
 	model.SetUserID(user.ID)
-	if false == models.CanAccessResource(h.db, h.GetTableName(model), model.GetID(), user, models.DeleteAction) {
+	if false == h.authorisation.CanAccessResource(h.db, user, model, models.DeleteAction, models.Scope{}) {
 		err = fmt.Errorf("unauthorized access to resource: %s", h.GetTableName(model))
 		return
 	}

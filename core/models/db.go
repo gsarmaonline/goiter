@@ -23,7 +23,6 @@ var (
 		&Account{},
 		&Project{},
 		&Permission{},
-		&RoleAccess{},
 		&Plan{},
 		&Feature{},
 		&PlanFeature{},

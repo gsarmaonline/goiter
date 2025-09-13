@@ -22,13 +22,5 @@
         }
       ]
     }
-  ],
-  "role_accesses": [
-    {
-      "resource_type": "*",
-      "resource_id": 0,
-      "level": 15,
-      "action": "*"
-    }
   ]
 }
