@@ -47,6 +47,11 @@ func NewHandler(router *gin.Engine, db *gorm.DB, cfg *config.Config) (handler *H
 	return
 }
 
+func (h *Handler) SetAuthorisationState(status bool) {
+	h.authorisation.IsEnabled = status
+	return
+}
+
 func (h *Handler) SetupRoutes() {
 	h.router.GET("/ping", h.handlePing)
 	h.setupAuthRoutes()
@@ -71,22 +76,9 @@ func (h *Handler) setupAuthRoutes() {
 		h.ProtectedRouteGroup.PUT("/profile", h.handleUpdateProfile)
 
 		// Initialize handlers
-		projectHandler := NewProjectHandler(h)
 		accountHandler := NewAccountHandler(h)
 		billingHandler := NewBillingHandler(h)
 		groupHandler := NewGroupHandler(h)
-
-		// Project routes
-		projectRoutes := h.ProtectedRouteGroup.Group("/projects")
-		{
-			projectRoutes.POST("", projectHandler.CreateProject)
-			projectRoutes.GET("", projectHandler.ListProjects)
-			projectRoutes.GET("/:id", projectHandler.GetProject)
-			projectRoutes.PUT("/:id", projectHandler.UpdateProject)
-			projectRoutes.DELETE("/:id", projectHandler.DeleteProject)
-			projectRoutes.POST("/:id/members", projectHandler.AddProjectMember)
-			projectRoutes.DELETE("/:id/members/:user_id", projectHandler.RemoveProjectMember)
-		}
 
 		// Account routes
 		accountRoutes := h.ProtectedRouteGroup.Group("/account")

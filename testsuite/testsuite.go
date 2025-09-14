@@ -140,9 +140,6 @@ func (c *GoiterClient) Run() (err error) {
 	if err := c.RunAccountSuite(); err != nil {
 		log.Fatalf("❌ Account suite failed: %v", err)
 	}
-	if err := c.RunProjectSuite(); err != nil {
-		log.Fatalf("❌ Project suite failed: %v", err)
-	}
 	if err := c.RunGroupSuite(); err != nil {
 		log.Fatalf("❌ Group suite failed: %v", err)
 	}

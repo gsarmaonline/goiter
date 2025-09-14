@@ -18,8 +18,6 @@ type Account struct {
 	Name        string `json:"name" gorm:"not null"`
 	Description string `json:"description"`
 
-	Projects []*Project `json:"projects" gorm:"foreignKey:AccountID"`
-
 	PlanID uint  `json:"plan_id"`
 	Plan   *Plan `json:"plan" gorm:"foreignKey:PlanID"`
 
@@ -50,15 +48,6 @@ func (account *Account) BeforeUpdate(tx *gorm.DB) (err error) {
 		err = account.CancelStripeSubscription(tx)
 	}
 	return
-}
-
-// BeforeDelete is a GORM hook that handles cleanup before account deletion
-func (a *Account) BeforeDelete(tx *gorm.DB) error {
-	// Delete all projects associated with this account
-	if err := tx.Where("account_id = ?", a.ID).Delete(&Project{}).Error; err != nil {
-		return err
-	}
-	return nil
 }
 
 func (account *Account) CreateStripeCustomer(tx *gorm.DB) (*stripe.Customer, error) {

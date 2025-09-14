@@ -21,8 +21,6 @@ var (
 		&User{},
 		&Profile{},
 		&Account{},
-		&Project{},
-		&Permission{},
 		&Plan{},
 		&Feature{},
 		&PlanFeature{},
