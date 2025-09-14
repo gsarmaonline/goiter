@@ -85,6 +85,7 @@ func (c *GoiterClient) DeleteGroup(id uint) (err error) {
 
 // AddGroupMember adds a member to a group
 func (c *GoiterClient) AddGroupMember(groupID uint, memberType string, memberID uint) (permission map[string]interface{}, err error) {
+
 	cliResp := &ClientResponse{}
 	if cliResp, err = c.makeRequest(&ClientRequest{
 		Method: "POST",
@@ -118,7 +119,7 @@ func (c *GoiterClient) RemoveGroupMember(groupID, memberID uint) (err error) {
 }
 
 // GetGroupAncestors fetches all the ancestors of the group
-func (c *GoiterClient) GetGroupAncestors(groupID uint) (groups []map[string]interface{}, err error) {
+func (c *GoiterClient) GetGroupAncestors(groupID uint) (groups []interface{}, err error) {
 	cliResp := &ClientResponse{}
 	if cliResp, err = c.makeRequest(&ClientRequest{
 		Method: "GET",
@@ -127,7 +128,9 @@ func (c *GoiterClient) GetGroupAncestors(groupID uint) (groups []map[string]inte
 	}); err != nil {
 		return nil, err
 	}
-	log.Println(cliResp.RespBody)
+	if data, ok := cliResp.RespBody["data"].([]interface{}); ok {
+		groups = data
+	}
 	return
 }
 
@@ -150,7 +153,8 @@ func (c *GoiterClient) RunGroupSuite() (err error) {
 	// Login also creates the user. So just logging in and getting the user ID
 	userHash, _ = c.Login("random_group_member_1@example.com")
 
-	c.Login(c.users["root"].Email)
+	_, err = c.Login(c.users["root"].Email)
+	assert.Nil(c, err, "Failed to login as root user")
 
 	_, err = c.AddGroupMember(groupID, "User", uint(userHash["id"].(float64)))
 	assert.Nil(c, err, "Failed to add member to group")
@@ -168,20 +172,22 @@ func (c *GoiterClient) RunGroupSuite() (err error) {
 	// Get group ancestors when ancestors are present
 	parentGroup, err := c.CreateGroup("Parent Group", "This is a parent group.")
 	grandParentGroup, err := c.CreateGroup("Grandparent Group", "This is a grandparent group.")
-	_, err = c.AddGroupMember(uint(parentGroup["id"].(float64)), "Group", groupID)
 	_, err = c.AddGroupMember(uint(grandParentGroup["id"].(float64)), "Group", uint(parentGroup["id"].(float64)))
+	assert.Nil(c, err, "Failed to add group member for grandparent")
+	_, err = c.AddGroupMember(uint(parentGroup["id"].(float64)), "Group", groupID)
+	assert.Nil(c, err, "Failed to add group member for parent")
 
 	ancestors, err = c.GetGroupAncestors(groupID)
 	assert.Nil(c, err, "Failed to get group ancestors")
 	assert.Equal(c, 2, len(ancestors), "Group should have 2 ancestors")
 
 	// Remove a member from the group
-	//err = c.RemoveGroupMember(groupID, uint(userHash["id"].(float64)))
-	//assert.Nil(c, err, "Failed to remove member from group")
+	err = c.RemoveGroupMember(groupID, uint(userHash["id"].(float64)))
+	assert.Nil(c, err, "Failed to remove member from group")
 
 	// Delete the group
-	//err = c.DeleteGroup(groupID)
-	//assert.Nil(c, err, "Failed to delete group")
+	err = c.DeleteGroup(groupID)
+	assert.Nil(c, err, "Failed to delete group")
 
 	return
 }

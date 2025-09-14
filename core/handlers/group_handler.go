@@ -50,7 +50,9 @@ func (h *GroupHandler) GetGroupAncestors(c *gin.Context) {
 		return
 	}
 	groups := []*models.Group{}
-	if err := group.GetGroupsAncestors(h.handler.UserScopedDB(c), &groups); err != nil {
+
+	// Use unrestricted DB for ancestor lookup to find all ancestors regardless of owner
+	if err := group.GetGroupsAncestors(h.db, &groups); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -85,6 +87,10 @@ func (h *GroupHandler) AddGroupMember(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
 		return
 	}
+
+	// Explicitly set the GroupID from the URL parameter
+	groupMember.GroupID = group.ID
+
 	if err := h.handler.CreateWithUser(c, &groupMember); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

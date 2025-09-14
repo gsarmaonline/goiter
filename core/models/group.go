@@ -2,7 +2,6 @@ package models
 
 import (
 	"errors"
-	"log"
 
 	"gorm.io/gorm"
 )
@@ -61,29 +60,40 @@ func (group *Group) getGroupsAncestorsRecursive(tx *gorm.DB, existingGroups *[]*
 		return
 	}
 	visitedGroups[group.ID] = true
+
+	// Query for group members where this group is a member of other groups
 	belongsToGroups := []*GroupMember{}
 	if db := tx.Where("member_type = ? AND member_id = ?", "Group", group.ID).Find(&belongsToGroups); db.Error != nil {
 		err = db.Error
 		return
 	}
-	log.Println("existing groups:", *existingGroups)
-	log.Println("Belongs to groups for member_id", group.ID, belongsToGroups)
+
+	// Extract the group IDs that this group belongs to
 	ancestorGroupIDs := []uint{}
 	for _, bg := range belongsToGroups {
 		ancestorGroupIDs = append(ancestorGroupIDs, bg.GroupID)
 	}
+
+	// Only proceed if we found any ancestor groups
 	ancestorGroups := []*Group{}
+	if len(ancestorGroupIDs) == 0 {
+		return
+	}
 	if db := tx.Where("id IN ?", ancestorGroupIDs).Find(&ancestorGroups); db.Error != nil {
 		err = db.Error
 		return
 	}
-	log.Println("Ancestor groups:", ancestorGroups)
+
+	// Append the found ancestor groups to our result list
 	*existingGroups = append(*existingGroups, ancestorGroups...)
+
+	// Recursively find ancestors of each ancestor group
 	for _, ancestorGroup := range ancestorGroups {
 		if err = ancestorGroup.getGroupsAncestorsRecursive(tx, existingGroups, visitedGroups); err != nil {
 			return
 		}
 	}
+
 	return
 }
 
