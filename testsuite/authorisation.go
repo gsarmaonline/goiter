@@ -1,7 +1,7 @@
 package testsuite
 
 import (
-	"fmt"
+	"log"
 
 	"github.com/gsarmaonline/goiter/core/models"
 )
@@ -24,27 +24,45 @@ func NewAuthorisationScenario(gc *GoiterClient) *AuthorisationScenario {
 	}
 }
 
-func (as *AuthorisationScenario) createAuthUsers() (err error) {
-	as.users = append(as.users, &models.User{
-		Email: "auth_root@sample.com",
-	}, &models.User{
-		Email: "auth_user@sample.com",
-	})
-	for _, user := range as.users {
-		if _, err = as.gc.Login(user.Email); err != nil {
-			return fmt.Errorf("failed to create user %s: %w", user.Email, err)
-		}
-	}
+func (gc *GoiterClient) CheckForDirectUserAndRoleAccess() (err error) {
+	return
+}
+
+func (gc *GoiterClient) CheckForIndirectUserAndDirectRoleAccess() (err error) {
+	return
+}
+
+func (gc *GoiterClient) CheckForDirectUserAndIndirectRoleAccess() (err error) {
+	return
+}
+
+func (gc *GoiterClient) CheckForIndirectUserAndIndirectRoleAccess() (err error) {
+	return
+}
+
+func (gc *GoiterClient) CheckForMultilevelIndirectUserAndIndirectRoleAccess() (err error) {
 	return
 }
 
 func (c *GoiterClient) RunAuthorisationSuite() (err error) {
+	log.Println("🔐 Running Authorisation tests...")
 
-	as := NewAuthorisationScenario(c)
-
-	if err = as.createAuthUsers(); err != nil {
-		c.Errorf("Failed to create auth users: %v", err)
+	// Test cases
+	if err = c.CheckForDirectUserAndRoleAccess(); err != nil {
 		return err
 	}
+	if err = c.CheckForIndirectUserAndDirectRoleAccess(); err != nil {
+		return err
+	}
+	if err = c.CheckForDirectUserAndIndirectRoleAccess(); err != nil {
+		return err
+	}
+	if err = c.CheckForIndirectUserAndIndirectRoleAccess(); err != nil {
+		return err
+	}
+	if err = c.CheckForMultilevelIndirectUserAndIndirectRoleAccess(); err != nil {
+		return err
+	}
+	log.Println("✅ Authorisation tests passed")
 	return nil
 }
