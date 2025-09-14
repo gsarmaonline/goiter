@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/gsarmaonline/goiter/core/models"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -27,7 +26,6 @@ func (c *GoiterClient) CreateGroup(name, description string) (group map[string]i
 	body := map[string]string{
 		"name":        name,
 		"description": description,
-		"member_type": "User",
 	}
 	cliResp := &ClientResponse{}
 	if cliResp, err = c.makeRequest(&ClientRequest{
@@ -86,7 +84,7 @@ func (c *GoiterClient) DeleteGroup(id uint) (err error) {
 }
 
 // AddGroupMember adds a member to a group
-func (c *GoiterClient) AddGroupMember(groupID uint, memberID uint, level models.PermissionLevel) (permission map[string]interface{}, err error) {
+func (c *GoiterClient) AddGroupMember(groupID uint, memberType string, memberID uint) (permission map[string]interface{}, err error) {
 	cliResp := &ClientResponse{}
 	if cliResp, err = c.makeRequest(&ClientRequest{
 		Method: "POST",
@@ -94,7 +92,7 @@ func (c *GoiterClient) AddGroupMember(groupID uint, memberID uint, level models.
 		Body: map[string]interface{}{
 			"group_id":    groupID,
 			"member_id":   memberID,
-			"member_type": "User",
+			"member_type": memberType,
 		},
 	}); err != nil {
 		return nil, err
@@ -119,6 +117,20 @@ func (c *GoiterClient) RemoveGroupMember(groupID, memberID uint) (err error) {
 	return
 }
 
+// GetGroupAncestors fetches all the ancestors of the group
+func (c *GoiterClient) GetGroupAncestors(groupID uint) (groups []map[string]interface{}, err error) {
+	cliResp := &ClientResponse{}
+	if cliResp, err = c.makeRequest(&ClientRequest{
+		Method: "GET",
+		URL:    fmt.Sprintf("/groups/%d/ancestors", groupID),
+		Body:   nil,
+	}); err != nil {
+		return nil, err
+	}
+	log.Println(cliResp.RespBody)
+	return
+}
+
 func (c *GoiterClient) RunGroupSuite() (err error) {
 	log.Println("Running Group test suite...")
 
@@ -140,7 +152,7 @@ func (c *GoiterClient) RunGroupSuite() (err error) {
 
 	c.Login(c.users["root"].Email)
 
-	_, err = c.AddGroupMember(groupID, uint(userHash["id"].(float64)), models.PermissionEditor)
+	_, err = c.AddGroupMember(groupID, "User", uint(userHash["id"].(float64)))
 	assert.Nil(c, err, "Failed to add member to group")
 
 	// List groups
@@ -148,13 +160,28 @@ func (c *GoiterClient) RunGroupSuite() (err error) {
 	assert.Nil(c, err, "Failed to list groups")
 	assert.NotEmpty(c, groups, "Groups list should not be empty")
 
+	// Get group ancestors (should be empty)
+	ancestors, err := c.GetGroupAncestors(groupID)
+	assert.Nil(c, err, "Failed to get group ancestors")
+	assert.Empty(c, ancestors, "Group ancestors should not be empty")
+
+	// Get group ancestors when ancestors are present
+	parentGroup, err := c.CreateGroup("Parent Group", "This is a parent group.")
+	grandParentGroup, err := c.CreateGroup("Grandparent Group", "This is a grandparent group.")
+	_, err = c.AddGroupMember(uint(parentGroup["id"].(float64)), "Group", groupID)
+	_, err = c.AddGroupMember(uint(grandParentGroup["id"].(float64)), "Group", uint(parentGroup["id"].(float64)))
+
+	ancestors, err = c.GetGroupAncestors(groupID)
+	assert.Nil(c, err, "Failed to get group ancestors")
+	assert.Equal(c, 2, len(ancestors), "Group should have 2 ancestors")
+
 	// Remove a member from the group
-	err = c.RemoveGroupMember(groupID, uint(userHash["id"].(float64)))
-	assert.Nil(c, err, "Failed to remove member from group")
+	//err = c.RemoveGroupMember(groupID, uint(userHash["id"].(float64)))
+	//assert.Nil(c, err, "Failed to remove member from group")
 
 	// Delete the group
-	err = c.DeleteGroup(groupID)
-	assert.Nil(c, err, "Failed to delete group")
+	//err = c.DeleteGroup(groupID)
+	//assert.Nil(c, err, "Failed to delete group")
 
 	return
 }

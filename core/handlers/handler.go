@@ -109,6 +109,7 @@ func (h *Handler) setupAuthRoutes() {
 			groupRoutes.POST("", groupHandler.CreateGroup)
 			groupRoutes.GET("", groupHandler.ListGroups)
 			groupRoutes.GET("/:id", groupHandler.GetGroup)
+			groupRoutes.GET("/:id/ancestors", groupHandler.GetGroupAncestors)
 			groupRoutes.DELETE("/:id", groupHandler.DeleteGroup)
 			groupRoutes.POST("/:id/members", groupHandler.AddGroupMember)
 			groupRoutes.DELETE("/:id/members", groupHandler.RemoveGroupMember)

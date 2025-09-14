@@ -2,6 +2,7 @@ package models
 
 import (
 	"errors"
+	"log"
 
 	"gorm.io/gorm"
 )
@@ -30,13 +31,6 @@ type (
 		MemberID   uint         `json:"member_id"`
 	}
 
-	GroupParent struct {
-		BaseModelWithUser
-
-		GroupID       uint `json:"group_id"`
-		ParentGroupID uint `json:"parent_group_id"`
-	}
-
 	// This struct is used to fetch groups for a given model
 	GroupFetcher struct {
 		tx    *gorm.DB
@@ -58,21 +52,42 @@ func (groupMember GroupMember) GetConfig() ModelConfig {
 	}
 }
 
-func (group *Group) GetGroupsTillRoot(tx *gorm.DB, existingGroups []*Group) (err error) {
-	tmpGroups := []*Group{}
-	if db := tx.Where("parent_group_id = ?", group.ID).Find(&tmpGroups); db.Error != nil {
+func (group *Group) GetGroupsAncestors(tx *gorm.DB, existingGroups *[]*Group) (err error) {
+	return group.getGroupsAncestorsRecursive(tx, existingGroups, make(map[uint]bool))
+}
+
+func (group *Group) getGroupsAncestorsRecursive(tx *gorm.DB, existingGroups *[]*Group, visitedGroups map[uint]bool) (err error) {
+	if _, ok := visitedGroups[group.ID]; ok {
+		return
+	}
+	visitedGroups[group.ID] = true
+	belongsToGroups := []*GroupMember{}
+	if db := tx.Where("member_type = ? AND member_id = ?", "Group", group.ID).Find(&belongsToGroups); db.Error != nil {
 		err = db.Error
 		return
 	}
-	existingGroups = append(existingGroups, tmpGroups...)
-	for _, g := range tmpGroups {
-		if err = g.GetGroupsTillRoot(tx, existingGroups); err != nil {
+	log.Println("existing groups:", *existingGroups)
+	log.Println("Belongs to groups for member_id", group.ID, belongsToGroups)
+	ancestorGroupIDs := []uint{}
+	for _, bg := range belongsToGroups {
+		ancestorGroupIDs = append(ancestorGroupIDs, bg.GroupID)
+	}
+	ancestorGroups := []*Group{}
+	if db := tx.Where("id IN ?", ancestorGroupIDs).Find(&ancestorGroups); db.Error != nil {
+		err = db.Error
+		return
+	}
+	log.Println("Ancestor groups:", ancestorGroups)
+	*existingGroups = append(*existingGroups, ancestorGroups...)
+	for _, ancestorGroup := range ancestorGroups {
+		if err = ancestorGroup.getGroupsAncestorsRecursive(tx, existingGroups, visitedGroups); err != nil {
 			return
 		}
 	}
 	return
 }
 
+// NewGroupFetcher returns a new GroupFetcher
 func NewGroupFetcher(tx *gorm.DB, model UserOwnedModel) *GroupFetcher {
 	return &GroupFetcher{
 		tx:    tx,
@@ -80,6 +95,7 @@ func NewGroupFetcher(tx *gorm.DB, model UserOwnedModel) *GroupFetcher {
 	}
 }
 
+// GetGroups returns all groups for a given model
 func (gf *GroupFetcher) GetGroups() (groups []*Group, err error) {
 	if gf.model.GetConfig().Name == "Group" {
 		err = errors.New("cannot fetch groups for Group model by GroupFetcher")
@@ -94,14 +110,12 @@ func (gf *GroupFetcher) GetGroups() (groups []*Group, err error) {
 	for _, gm := range groupMembers {
 		groupIds = append(groupIds, gm.GroupID)
 	}
-	if len(groupIds) > 0 {
-		if db := gf.tx.Where("id IN ?", groupIds).Find(&groups); db.Error != nil {
-			err = db.Error
-			return
-		}
+	if db := gf.tx.Where("id IN ?", groupIds).Find(&groups); db.Error != nil {
+		err = db.Error
+		return
 	}
 	for _, g := range groups {
-		if err = g.GetGroupsTillRoot(gf.tx, groups); err != nil {
+		if err = g.GetGroupsAncestors(gf.tx, &groups); err != nil {
 			return
 		}
 	}

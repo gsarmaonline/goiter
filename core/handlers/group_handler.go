@@ -43,6 +43,20 @@ func (h *GroupHandler) GetGroup(c *gin.Context) {
 	h.handler.WriteSuccess(c, group)
 }
 
+func (h *GroupHandler) GetGroupAncestors(c *gin.Context) {
+	var group models.Group
+	if err := h.handler.GetModelFromUrl(c, &group, DefaultUrlKeyName); err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Group not found"})
+		return
+	}
+	groups := []*models.Group{}
+	if err := group.GetGroupsAncestors(h.handler.UserScopedDB(c), &groups); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	h.handler.WriteSuccess(c, groups)
+}
+
 func (h *GroupHandler) CreateGroup(c *gin.Context) {
 	var (
 		group models.Group
