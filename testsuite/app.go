@@ -4,61 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"os"
-
-	"github.com/gin-gonic/gin"
-	"github.com/gsarmaonline/goiter/core"
-	"github.com/gsarmaonline/goiter/core/models"
 )
-
-type (
-	App struct {
-		*core.Server
-	}
-
-	ModelOne struct {
-		models.BaseModelWithUser
-
-		Name string `json:"name" gorm:"not null"`
-	}
-
-	ModelTwo struct {
-		models.BaseModelWithUser
-		Title string `json:"title" gorm:"not null"`
-	}
-)
-
-func (c ModelOne) GetConfig() models.ModelConfig {
-	return models.ModelConfig{
-		Name:      "ModelOne",
-		ScopeType: models.ProjectScopeType,
-	}
-}
-
-func (c ModelTwo) GetConfig() models.ModelConfig {
-	return models.ModelConfig{
-		Name:      "ModelTwo",
-		ScopeType: models.ProjectScopeType,
-	}
-}
-
-func NewApp(srv *core.Server) (app *App, err error) {
-	app = &App{
-		Server: srv,
-	}
-	if err = app.DbMgr.RegisterModels([]models.UserOwnedModel{&ModelOne{}, &ModelTwo{}}); err != nil {
-		log.Println(err)
-		os.Exit(-1)
-	}
-
-	app.Handler.OpenRouteGroup.GET("/app_ping", app.Ping)
-	app.Handler.ProtectedRouteGroup.GET("/app_protected_ping", app.Ping)
-	return
-}
-
-func (app *App) Ping(c *gin.Context) {
-	app.Handler.WriteSuccess(c, "pong")
-}
 
 func (c *GoiterClient) PingOpenRoute() (err error) {
 	// Test the /app_ping endpoint
@@ -107,6 +53,35 @@ func (c *GoiterClient) PingProtectedRoute() (err error) {
 	return
 }
 
+func (c *GoiterClient) CreateModelOne(name string) (modelOne map[string]interface{}, err error) {
+	body := map[string]string{
+		"name": name,
+	}
+	cliResp := &ClientResponse{}
+	if cliResp, err = c.makeRequest(&ClientRequest{
+		Method: "POST",
+		URL:    "/model_ones",
+		Body:   body,
+	}); err != nil {
+		return
+	}
+	modelOne = cliResp.RespBody
+	return
+}
+
+func (c *GoiterClient) ListModelOnes() (models []interface{}, err error) {
+	cliResp := &ClientResponse{}
+	if cliResp, err = c.makeRequest(&ClientRequest{
+		Method: "GET",
+		URL:    "/model_ones",
+		Body:   nil,
+	}); err != nil {
+		return
+	}
+	models = cliResp.RespBody["data"].([]interface{})
+	return
+}
+
 func (c *GoiterClient) RunAppTestSuite() (err error) {
 	log.Println("Running app test suite...")
 	if err = c.PingOpenRoute(); err != nil {
@@ -115,6 +90,12 @@ func (c *GoiterClient) RunAppTestSuite() (err error) {
 	if err = c.PingProtectedRoute(); err != nil {
 		return
 	}
+	if _, err = c.CreateModelOne("Test Model One"); err != nil {
+		return
+	}
+	//if _, err = c.ListModelOnes(); err != nil {
+	//	return
+	//}
 
 	log.Println("App test suite completed successfully.")
 	return nil

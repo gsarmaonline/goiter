@@ -52,6 +52,10 @@ func NewServer(cfg *config.Config) *Server {
 		log.Fatalf("Failed to initialize database: %v", err)
 	}
 
+	if dbMgr.Db == nil {
+		log.Fatalf("Database connection is nil")
+	}
+
 	// Create server instance
 	server := &Server{
 		Router:  router,
@@ -63,6 +67,9 @@ func NewServer(cfg *config.Config) *Server {
 	return server
 }
 
-func (s *Server) Start() error {
+func (s *Server) Start() (err error) {
+	if err = s.DbMgr.Migrate(); err != nil {
+		return
+	}
 	return s.Router.Run(fmt.Sprintf(":%s", s.Cfg.Port))
 }

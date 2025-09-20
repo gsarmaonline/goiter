@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"strconv"
 
@@ -14,6 +15,9 @@ import (
 
 const (
 	DefaultUrlKeyName = "id"
+
+	// For FindWithUser query types
+	NilQuery = ""
 )
 
 type (
@@ -182,13 +186,19 @@ func (h *Handler) FirstWithUser(c *gin.Context, userOwnedModel models.UserOwnedM
 	return
 }
 
-func (h *Handler) FindWithUser(c *gin.Context, userOwnedModels []models.UserOwnedModel, query string) (err error) {
-	user := h.GetUserFromContext(c)
-	err = h.db.Where(query).Find(&userOwnedModels).Error
-	for _, model := range userOwnedModels {
+func (h *Handler) FindWithUser(c *gin.Context, userOwnedModel interface{},
+	query string) (userOwnedModels []models.UserOwnedModel, err error) {
 
-		if false == h.authorisation.CanAccessResource(h.db, user, model, models.ReadAction, models.Scope{}) {
-			err = fmt.Errorf("unauthorized access to resource: %s", h.GetTableName(model))
+	user := h.GetUserFromContext(c)
+	err = h.db.Model(userOwnedModel).Where(query).Find(userOwnedModels).Error
+	for _, model := range userOwnedModels {
+		if false == h.authorisation.CanAccessResource(h.db,
+			user,
+			model.(models.UserOwnedModel),
+			models.ReadAction,
+			models.Scope{},
+		) {
+			err = fmt.Errorf("unauthorized access to resource: %s", h.GetTableName(model.(models.UserOwnedModel)))
 			return
 		}
 	}
@@ -234,6 +244,9 @@ func (h *Handler) WriteSuccess(c *gin.Context, data interface{}) {
 }
 
 func (h *Handler) WriteError(c *gin.Context, err error, message string) {
+	if err != nil {
+		log.Println(err, message)
+	}
 	c.JSON(500, gin.H{
 		"error": message,
 	})

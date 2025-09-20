@@ -151,10 +151,7 @@ func (c *GoiterClient) RunGroupSuite() (err error) {
 	// Add a member to the group
 	userHash := make(map[string]interface{})
 	// Login also creates the user. So just logging in and getting the user ID
-	userHash, _ = c.Login("random_group_member_1@example.com")
-
-	_, err = c.Login(c.users["root"].Email)
-	assert.Nil(c, err, "Failed to login as root user")
+	userHash, _ = c.CreateAndLogin("random_group_member_1@example.com", false)
 
 	_, err = c.AddGroupMember(groupID, "User", uint(userHash["id"].(float64)))
 	assert.Nil(c, err, "Failed to add member to group")

@@ -6,10 +6,6 @@ import (
 	"github.com/gsarmaonline/goiter/core/models"
 )
 
-// Testing Authorisation
-// - Define types of users
-// - Define the resources to access
-
 type (
 	AuthorisationScenario struct {
 		gc    *GoiterClient
@@ -24,43 +20,58 @@ func NewAuthorisationScenario(gc *GoiterClient) *AuthorisationScenario {
 	}
 }
 
-func (gc *GoiterClient) CheckForDirectUserAndRoleAccess() (err error) {
+func (auth *AuthorisationScenario) Setup() (err error) {
+	auth.gc.CreateAndLogin("direct_user_auth@example.com", false)
+	auth.gc.CreateAndLogin("indirect_user_auth@example.com", false)
 	return
 }
 
-func (gc *GoiterClient) CheckForIndirectUserAndDirectRoleAccess() (err error) {
+func (auth *AuthorisationScenario) CheckForOwnerUserAndRoleAccess() (err error) {
 	return
 }
 
-func (gc *GoiterClient) CheckForDirectUserAndIndirectRoleAccess() (err error) {
+func (auth *AuthorisationScenario) CheckForDirectUserAndRoleAccess() (err error) {
 	return
 }
 
-func (gc *GoiterClient) CheckForIndirectUserAndIndirectRoleAccess() (err error) {
+func (auth *AuthorisationScenario) CheckForIndirectUserAndDirectRoleAccess() (err error) {
 	return
 }
 
-func (gc *GoiterClient) CheckForMultilevelIndirectUserAndIndirectRoleAccess() (err error) {
+func (auth *AuthorisationScenario) CheckForDirectUserAndIndirectRoleAccess() (err error) {
+	return
+}
+
+func (auth *AuthorisationScenario) CheckForIndirectUserAndIndirectRoleAccess() (err error) {
+	return
+}
+
+func (auth *AuthorisationScenario) CheckForMultilevelIndirectUserAndIndirectRoleAccess() (err error) {
 	return
 }
 
 func (c *GoiterClient) RunAuthorisationSuite() (err error) {
 	log.Println("🔐 Running Authorisation tests...")
 
+	authorisation := NewAuthorisationScenario(c)
+
 	// Test cases
-	if err = c.CheckForDirectUserAndRoleAccess(); err != nil {
+	if err = authorisation.CheckForDirectUserAndRoleAccess(); err != nil {
 		return err
 	}
-	if err = c.CheckForIndirectUserAndDirectRoleAccess(); err != nil {
+	if err = authorisation.CheckForOwnerUserAndRoleAccess(); err != nil {
 		return err
 	}
-	if err = c.CheckForDirectUserAndIndirectRoleAccess(); err != nil {
+	if err = authorisation.CheckForIndirectUserAndDirectRoleAccess(); err != nil {
 		return err
 	}
-	if err = c.CheckForIndirectUserAndIndirectRoleAccess(); err != nil {
+	if err = authorisation.CheckForDirectUserAndIndirectRoleAccess(); err != nil {
 		return err
 	}
-	if err = c.CheckForMultilevelIndirectUserAndIndirectRoleAccess(); err != nil {
+	if err = authorisation.CheckForIndirectUserAndIndirectRoleAccess(); err != nil {
+		return err
+	}
+	if err = authorisation.CheckForMultilevelIndirectUserAndIndirectRoleAccess(); err != nil {
 		return err
 	}
 	log.Println("✅ Authorisation tests passed")

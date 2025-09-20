@@ -67,9 +67,6 @@ func NewDbManager(cfg *config.Config) (dbMgr *DbManager, err error) {
 		return
 	}
 	dbMgr.seeder = NewSeeder(dbMgr.Db)
-	if err = dbMgr.PostMigrate(); err != nil {
-		return
-	}
 	return
 }
 
@@ -156,12 +153,20 @@ func (dbMgr *DbManager) Setup() (err error) {
 	if dbMgr.cfg.Mode == config.ModeDev {
 		dbMgr.DropModels()
 	}
+	return
+}
+
+func (dbMgr *DbManager) Migrate() (err error) {
 	models := dbMgr.GetModels()
 	var ifaceModels []interface{}
 	for _, m := range models {
 		ifaceModels = append(ifaceModels, m)
 	}
 	if err = dbMgr.Db.AutoMigrate(ifaceModels...); err != nil {
+		return
+	}
+
+	if err = dbMgr.PostMigrate(); err != nil {
 		return
 	}
 	return

@@ -10,7 +10,13 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/gsarmaonline/goiter/core"
 	"github.com/gsarmaonline/goiter/core/models"
+	"github.com/gsarmaonline/goiter/testsuite/app"
+)
+
+const (
+	ROOT_USER = "root"
 )
 
 type (
@@ -19,6 +25,8 @@ type (
 		httpClient *http.Client
 
 		jwtToken string
+
+		server *core.Server
 
 		users map[string]*models.User
 	}
@@ -48,11 +56,13 @@ func NewGoiterClient() (gc *GoiterClient) {
 		},
 		users: make(map[string]*models.User),
 	}
-	gc.users["root"] = &models.User{
+	gc.users[ROOT_USER] = &models.User{
 		Email: "root@example.com",
 	}
-	go gc.StartServer()
-	time.Sleep(2 * time.Second) // Wait for the server to start
+
+	// Start the core server
+	gc.server = gc.NewServer()
+
 	return
 }
 
@@ -95,7 +105,7 @@ func (c *GoiterClient) makeRequest(cliReq *ClientRequest) (cliResp *ClientRespon
 	respB, err := io.ReadAll(cliResp.Resp.Body)
 
 	if cliResp.Resp.StatusCode != http.StatusOK && err == nil {
-		err = fmt.Errorf("request failed with status: %d with body", cliResp.Resp.StatusCode, string(respB))
+		err = fmt.Errorf("request failed with status: %d with body %s", cliResp.Resp.StatusCode, string(respB))
 		return
 	}
 	if err = json.Unmarshal(respB, &cliResp.RespBody); err != nil {
@@ -128,6 +138,19 @@ func (c *GoiterClient) Ping() error {
 
 func (c *GoiterClient) Run() (err error) {
 	log.Println("🚀 Starting Goiter Test Suite...")
+	var (
+		exApp *app.App
+	)
+
+	// Setup the example app
+	if exApp, err = app.NewApp(c.server); err != nil {
+		return
+	}
+
+	// Start the core server
+	go exApp.Start()
+
+	time.Sleep(2 * time.Second)
 
 	// Run basic functional tests
 	log.Println("📋 Running Basic Functional Tests...")
