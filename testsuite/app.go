@@ -93,9 +93,9 @@ func (c *GoiterClient) RunAppTestSuite() (err error) {
 	if _, err = c.CreateModelOne("Test Model One"); err != nil {
 		return
 	}
-	//if _, err = c.ListModelOnes(); err != nil {
-	//	return
-	//}
+	if _, err = c.ListModelOnes(); err != nil {
+		return
+	}
 
 	log.Println("App test suite completed successfully.")
 	return nil

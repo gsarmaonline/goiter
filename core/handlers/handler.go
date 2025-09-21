@@ -190,7 +190,7 @@ func (h *Handler) FindWithUser(c *gin.Context, userOwnedModel interface{},
 	query string) (userOwnedModels []models.UserOwnedModel, err error) {
 
 	user := h.GetUserFromContext(c)
-	err = h.db.Model(userOwnedModel).Where(query).Find(userOwnedModels).Error
+	err = h.db.Model(userOwnedModel).Where(query).Find(&userOwnedModels).Error
 	for _, model := range userOwnedModels {
 		if false == h.authorisation.CanAccessResource(h.db,
 			user,
@@ -198,7 +198,7 @@ func (h *Handler) FindWithUser(c *gin.Context, userOwnedModel interface{},
 			models.ReadAction,
 			models.Scope{},
 		) {
-			err = fmt.Errorf("unauthorized access to resource: %s", h.GetTableName(model.(models.UserOwnedModel)))
+			err = fmt.Errorf("unauthorized access to resource: %s", model.(models.UserOwnedModel).GetConfig().Name)
 			return
 		}
 	}

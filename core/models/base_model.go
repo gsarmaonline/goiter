@@ -21,6 +21,9 @@ type (
 	BaseModelWithUser struct {
 		BaseModel
 
+		OwnerType ScopeTypeT `json:"owner_type" gorm:"not null;default:'user'"`
+		OwnerID   uint       `json:"owner_id" gorm:"not null"`
+
 		UserID uint  `json:"user_id" gorm:"not null"`
 		User   *User `json:"user" gorm:"foreignKey:UserID"`
 	}
