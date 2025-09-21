@@ -159,7 +159,7 @@ There are 2 possible options here:
 - They refer to the parent object as the scope and the actual scope is recursively
   discovered by going up the stack of the ancestors
 
-## Fetching a list of objects
+## Using Groups to define Ownership and scope
 
 How do you fetch a list of objects specific to the user in a multi-tenant system?
 Most apps add an `owner_id` or `account_id` in every resource and then add it in the `WHERE` clause whenever the list of
@@ -242,6 +242,22 @@ In this section, we will cover how an object can be referred to in a Group, both
 Anytime an object needs to be added to a group, it can be done on the fly by directly invoking the Group API or DB write.
 
 Since we are discussing this in the context of `Goiter`, we may need to define more implicit ways of referring to a group.
+
+### Identifying the Scope
+
+Another problem to solve is the ability to figure out or define the scope of an API while fetching an object.
+The possible data available to figure out the scope:
+
+- The User/Accessor
+- Groups the user belongs to
+- Using the URL's params
+
+A no-brainer is compelling the developer to pass in the explicit scope everytime.
+Can the scope be implicitly discovered?
+
+Once the scope is defined, the system should check if the user can access the scope.
+If it can access the scope, then from the group, fetch the members of the group recursively based on the type of the
+object required.
 
 ### Cons of Grouping everything
 
