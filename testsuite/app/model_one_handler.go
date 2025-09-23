@@ -2,7 +2,6 @@ package app
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/gsarmaonline/goiter/core/models"
 )
 
 func (app *App) CreateModelOneHandler(c *gin.Context) {
@@ -20,7 +19,7 @@ func (app *App) CreateModelOneHandler(c *gin.Context) {
 
 func (app *App) ListModelOnesHandler(c *gin.Context) {
 	var (
-		modelOnes []models.UserOwnedModel
+		modelOnes []ModelOne
 		err       error
 	)
 	if err = app.Handler.Db.Find(&modelOnes).Error; err != nil {

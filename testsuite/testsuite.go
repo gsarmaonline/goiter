@@ -150,7 +150,7 @@ func (c *GoiterClient) Run() (err error) {
 	// Start the core server
 	go exApp.Start()
 
-	time.Sleep(2 * time.Second)
+	time.Sleep(5 * time.Second)
 
 	// Run basic functional tests
 	log.Println("📋 Running Basic Functional Tests...")

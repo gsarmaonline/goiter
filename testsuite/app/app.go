@@ -17,12 +17,12 @@ type (
 	ModelOne struct {
 		models.BaseModelWithUser
 
-		Name string `json:"name" gorm:"not null"`
+		Name string `json:"name"`
 	}
 
 	ModelTwo struct {
 		models.BaseModelWithUser
-		Title string `json:"title" gorm:"not null"`
+		Title string `json:"title"`
 	}
 )
 
@@ -57,7 +57,11 @@ func NewApp(srv *core.Server) (app *App, err error) {
 }
 
 func (app *App) Start() (err error) {
-	return app.Server.Start()
+	if err = app.Server.Start(); err != nil {
+		log.Fatalln(err)
+		return
+	}
+	return
 }
 
 func (app *App) Ping(c *gin.Context) {

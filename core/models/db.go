@@ -163,10 +163,12 @@ func (dbMgr *DbManager) Migrate() (err error) {
 		ifaceModels = append(ifaceModels, m)
 	}
 	if err = dbMgr.Db.AutoMigrate(ifaceModels...); err != nil {
+		log.Println("Auto migration failed:", err)
 		return
 	}
 
 	if err = dbMgr.PostMigrate(); err != nil {
+		log.Println("Post migration failed:", err)
 		return
 	}
 	return
