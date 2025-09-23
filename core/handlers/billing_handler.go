@@ -19,8 +19,8 @@ type BillingHandler struct {
 func NewBillingHandler(handler *Handler) *BillingHandler {
 	return &BillingHandler{
 		handler:       handler,
-		db:            handler.db,
-		stripeService: services.NewStripeService(handler.db),
+		db:            handler.Db,
+		stripeService: services.NewStripeService(handler.Db),
 	}
 }
 

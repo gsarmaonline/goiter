@@ -2,7 +2,6 @@ package app
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/gsarmaonline/goiter/core/handlers"
 	"github.com/gsarmaonline/goiter/core/models"
 )
 
@@ -21,12 +20,12 @@ func (app *App) CreateModelOneHandler(c *gin.Context) {
 
 func (app *App) ListModelOnesHandler(c *gin.Context) {
 	var (
-		models []models.UserOwnedModel
-		err    error
+		modelOnes []models.UserOwnedModel
+		err       error
 	)
-	if models, err = app.Handler.FindWithUser(c, &ModelOne{}, handlers.NilQuery); err != nil {
+	if err = app.Handler.Db.Find(&modelOnes).Error; err != nil {
 		app.Handler.WriteError(c, err, "Failed to list ModelOnes")
 		return
 	}
-	app.Handler.WriteSuccess(c, models)
+	app.Handler.WriteSuccess(c, modelOnes)
 }

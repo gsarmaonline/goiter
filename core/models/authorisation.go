@@ -19,6 +19,19 @@ type (
 	ElementT   string
 	ActionT    string
 
+	Authorisation struct {
+		AllowImplicitOwnerAccess bool
+		IsEnabled                bool
+	}
+
+	AuthorisationRequest struct {
+		Db       *gorm.DB
+		User     *User
+		Resource UserOwnedModel
+		Action   ActionT
+		Scope    *Scope
+	}
+
 	RoleAccess struct {
 		gorm.Model
 
@@ -37,11 +50,6 @@ type (
 		ScopeType string
 		ScopeID   uint
 	}
-
-	Authorisation struct {
-		AllowImplicitOwnerAccess bool
-		IsEnabled                bool
-	}
 )
 
 func NewAuthorisation() *Authorisation {
@@ -55,8 +63,42 @@ func (a *Authorisation) getQueryString() string {
 	return "accessor_type = ? AND accessor_id = ? AND resource_type = ? AND resource_id = ? AND action = ? AND scope_type = ? AND scope_id = ?"
 }
 
-func (a *Authorisation) CanAccessResource(db *gorm.DB,
-	accessor *User, resource UserOwnedModel, action ActionT, scope Scope) bool {
+func (c *Authorisation) GetResourcesForUser(authReq *AuthorisationRequest) ([]uint, error) {
+	var (
+		resources   []uint
+		roleAccess  []RoleAccess
+		err         error
+		accessorIDs []uint
+	)
+
+	if c.IsEnabled == false {
+		return resources, nil
+	}
+
+	accessorIDs = append(accessorIDs, authReq.User.GetID())
+
+	userGroups, err := NewGroupFetcher(authReq.Db, authReq.User).GetGroups()
+	if err != nil {
+		return resources, err
+	}
+	for _, g := range userGroups {
+		accessorIDs = append(accessorIDs, g.GetID())
+	}
+
+	if err = authReq.Db.Where("accessor_type = ? AND accessor_id IN ? AND resource_type = ? AND action = ? AND scope_type = ? AND scope_id = ?",
+		"User", accessorIDs, authReq.Resource.GetConfig().Name, authReq.Action, authReq.Scope.ScopeType, authReq.Scope.ScopeID,
+	).Find(&roleAccess).Error; err != nil {
+		return resources, err
+	}
+
+	for _, ra := range roleAccess {
+		resources = append(resources, ra.ResourceID)
+	}
+
+	return resources, nil
+}
+
+func (a *Authorisation) CanAccessResource(authReq *AuthorisationRequest) bool {
 
 	var (
 		err error
@@ -67,14 +109,14 @@ func (a *Authorisation) CanAccessResource(db *gorm.DB,
 	}
 
 	// If the accessor is the owner of the resource, allow access
-	if a.AllowImplicitOwnerAccess && resource.GetUserID() == accessor.GetID() {
+	if a.AllowImplicitOwnerAccess && authReq.Resource.GetUserID() == authReq.User.GetID() {
 		return true
 	}
 
 	roleAccess := &RoleAccess{}
-	db.Where(a.getQueryString(),
-		"User", accessor.GetID(), resource.GetConfig().Name,
-		resource.GetID(), action, scope.ScopeType, scope.ScopeID,
+	authReq.Db.Where(a.getQueryString(),
+		"User", authReq.User.GetID(), authReq.Resource.GetConfig().Name,
+		authReq.Resource.GetID(), authReq.Action, authReq.Scope.ScopeType, authReq.Scope.ScopeID,
 	).First(roleAccess)
 	if roleAccess.ID != 0 {
 		return true
@@ -83,17 +125,17 @@ func (a *Authorisation) CanAccessResource(db *gorm.DB,
 	possibleAccessorGroups := []*Group{}
 	possibleResourceGroups := []*Group{}
 
-	if possibleAccessorGroups, err = NewGroupFetcher(db, accessor).GetGroups(); err != nil {
+	if possibleAccessorGroups, err = NewGroupFetcher(authReq.Db, authReq.User).GetGroups(); err != nil {
 		return false
 	}
-	if possibleResourceGroups, err = NewGroupFetcher(db, resource).GetGroups(); err != nil {
+	if possibleResourceGroups, err = NewGroupFetcher(authReq.Db, authReq.Resource).GetGroups(); err != nil {
 		return false
 	}
 
-	return a.compareWithGroups(db, possibleAccessorGroups, possibleResourceGroups, action, scope)
+	return a.compareWithGroups(authReq.Db, possibleAccessorGroups, possibleResourceGroups, authReq.Action, authReq.Scope)
 }
 
-func (a *Authorisation) compareWithGroups(db *gorm.DB, accessorGroups, resourceGroups []*Group, action ActionT, scope Scope) bool {
+func (a *Authorisation) compareWithGroups(db *gorm.DB, accessorGroups, resourceGroups []*Group, action ActionT, scope *Scope) bool {
 	for _, ag := range accessorGroups {
 		for _, rg := range resourceGroups {
 			roleAccess := RoleAccess{}

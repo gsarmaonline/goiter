@@ -9,7 +9,7 @@ import (
 
 func (h *Handler) GetPlans(c *gin.Context) {
 	plans := []models.Plan{}
-	err := h.db.Preload("Features").Find(&plans).Error
+	err := h.Db.Preload("Features").Find(&plans).Error
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

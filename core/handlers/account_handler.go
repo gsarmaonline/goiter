@@ -22,7 +22,7 @@ type (
 )
 
 func NewAccountHandler(handler *Handler) *AccountHandler {
-	return &AccountHandler{handler: handler, db: handler.db}
+	return &AccountHandler{handler: handler, db: handler.Db}
 }
 
 // GetAccount retrieves the account for the current user

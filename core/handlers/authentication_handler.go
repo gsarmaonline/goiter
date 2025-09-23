@@ -48,7 +48,7 @@ func (h *Handler) handleShortCircuitLogin(c *gin.Context) {
 	modUser := &models.User{}
 
 	// Try to find existing user by email
-	if result := h.db.Where(models.User{Email: req.Email}).First(&modUser); result.Error != nil {
+	if result := h.Db.Where(models.User{Email: req.Email}).First(&modUser); result.Error != nil {
 		// User doesn't exist, create new one
 		someRandomNumber := strconv.Itoa(rand.Int())
 		user := models.User{
@@ -59,7 +59,7 @@ func (h *Handler) handleShortCircuitLogin(c *gin.Context) {
 			CreatedFrom: "login",
 		}
 
-		if err := h.db.Create(&user).Error; err != nil {
+		if err := h.Db.Create(&user).Error; err != nil {
 			c.JSON(500, gin.H{"error": "Failed to create user"})
 			return
 		}
@@ -67,7 +67,7 @@ func (h *Handler) handleShortCircuitLogin(c *gin.Context) {
 	} else {
 		// User exists, just update status to active
 		modUser.UserStatus = models.ActiveUser
-		if err := h.db.Save(&modUser).Error; err != nil {
+		if err := h.Db.Save(&modUser).Error; err != nil {
 			c.JSON(500, gin.H{"error": "Failed to update user status"})
 			return
 		}
@@ -141,13 +141,13 @@ func (h *Handler) handleGoogleCallback(c *gin.Context) {
 	}
 	modUser := &models.User{}
 
-	if result := h.db.Where(models.User{Email: userInfo.Email}).FirstOrCreate(&modUser); result.Error != nil {
+	if result := h.Db.Where(models.User{Email: userInfo.Email}).FirstOrCreate(&modUser); result.Error != nil {
 		c.JSON(500, gin.H{"error": "Failed to save user"})
 		return
 	}
 	user.ID = modUser.ID
 
-	if err := h.db.Save(&user).Error; err != nil {
+	if err := h.Db.Save(&user).Error; err != nil {
 		c.JSON(500, gin.H{"error": "Failed to update user status"})
 		return
 	}

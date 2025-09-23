@@ -22,7 +22,7 @@ type (
 )
 
 func NewGroupHandler(handler *Handler) *GroupHandler {
-	return &GroupHandler{handler: handler, db: handler.db}
+	return &GroupHandler{handler: handler, db: handler.Db}
 }
 
 func (h *GroupHandler) ListGroups(c *gin.Context) {
