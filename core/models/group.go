@@ -17,15 +17,21 @@ type (
 	Group struct {
 		BaseModelWithUser
 
-		Name        string       `json:"name"`
-		Description string       `json:"description"`
-		MemberType  ElementTypeT `json:"member_type"`
+		Name        string `json:"name"`
+		Description string `json:"description"`
+
+		// The member type is used to restrict the type of members that can be added to the group
+		// If empty, any type of member can be added
+		// If set to "user_element", only user elements can be added
+		RestrictToMemberType ElementTypeT `json:"restrict_to_member_type"`
 	}
 
 	GroupMember struct {
 		BaseModelWithUser
 
-		GroupID    uint         `json:"group_id"`
+		GroupID uint `json:"group_id"`
+		// The MemberType refers to the type of the member
+		// It can also be "Group" to allow nested groups
 		MemberType ElementTypeT `json:"member_type"`
 		MemberID   uint         `json:"member_id"`
 	}
@@ -49,6 +55,47 @@ func (groupMember GroupMember) GetConfig() ModelConfig {
 		Name:      "GroupMember",
 		ScopeType: AccountScopeType,
 	}
+}
+
+func (group *Group) GetGroupMembers(tx *gorm.DB, memberType ElementTypeT, members *[]GroupMember) (err error) {
+	return group.getGroupMembersRecursive(tx, memberType, members)
+}
+
+func (group *Group) getGroupMembersRecursive(tx *gorm.DB, memberType ElementTypeT, members *[]GroupMember) (err error) {
+	childGroupIDs := []uint{}
+	childGroups := []Group{}
+
+	// Find the direct members of the group
+	if db := tx.Where("group_id = ? AND member_type = ?", group.ID, memberType).Find(members); db.Error != nil {
+		err = db.Error
+		return
+	}
+	for _, member := range *members {
+		// If the member is a group, we need to fetch its members recursively
+		if member.MemberType == "Group" {
+			childGroupIDs = append(childGroupIDs, member.MemberID)
+		} else {
+			*members = append(*members, member)
+		}
+	}
+
+	// Fetch members of child groups recursively
+	if len(childGroupIDs) > 0 {
+		return
+	}
+
+	if db := tx.Where("id IN ?", childGroupIDs).Find(&childGroups); db.Error != nil {
+		err = db.Error
+		return
+	}
+
+	// Recursively fetch members of each child group
+	for _, childGroup := range childGroups {
+		if err = childGroup.getGroupMembersRecursive(tx, memberType, members); err != nil {
+			return
+		}
+	}
+	return
 }
 
 func (group *Group) GetGroupsAncestors(tx *gorm.DB, existingGroups *[]*Group) (err error) {
@@ -112,7 +159,10 @@ func (gf *GroupFetcher) GetGroups() (groups []*Group, err error) {
 		return
 	}
 	groupMembers := []GroupMember{}
-	if db := gf.tx.Where("group_id = ? AND group_type = ?", gf.model.GetID(), gf.model.GetConfig().Name).Find(&groupMembers); db.Error != nil {
+	if db := gf.tx.Where("group_id = ? AND group_type = ?",
+		gf.model.GetID(),
+		gf.model.GetConfig().Name).Find(&groupMembers); db.Error != nil {
+
 		err = db.Error
 		return
 	}

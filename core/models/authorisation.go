@@ -60,7 +60,7 @@ func NewAuthorisation() *Authorisation {
 }
 
 func (a *Authorisation) getQueryString() string {
-	return "accessor_type = ? AND accessor_id = ? AND resource_type = ? AND resource_id = ? AND action = ? AND scope_type = ? AND scope_id = ?"
+	return "accessor_type = ? AND accessor_id = ? AND resource_type = ? AND resource_id = ? AND action = ?"
 }
 
 func (c *Authorisation) GetResourcesForUser(authReq *AuthorisationRequest) ([]uint, error) {
@@ -85,8 +85,11 @@ func (c *Authorisation) GetResourcesForUser(authReq *AuthorisationRequest) ([]ui
 		accessorIDs = append(accessorIDs, g.GetID())
 	}
 
-	if err = authReq.Db.Where("accessor_type = ? AND accessor_id IN ? AND resource_type = ? AND action = ? AND scope_type = ? AND scope_id = ?",
-		"User", accessorIDs, authReq.Resource.GetConfig().Name, authReq.Action, authReq.Scope.ScopeType, authReq.Scope.ScopeID,
+	if err = authReq.Db.Where(c.getQueryString(),
+		"User",
+		accessorIDs,
+		authReq.Resource.GetConfig().Name,
+		authReq.Action,
 	).Find(&roleAccess).Error; err != nil {
 		return resources, err
 	}
@@ -115,8 +118,11 @@ func (a *Authorisation) CanAccessResource(authReq *AuthorisationRequest) bool {
 
 	roleAccess := &RoleAccess{}
 	authReq.Db.Where(a.getQueryString(),
-		"User", authReq.User.GetID(), authReq.Resource.GetConfig().Name,
-		authReq.Resource.GetID(), authReq.Action, authReq.Scope.ScopeType, authReq.Scope.ScopeID,
+		"User",
+		authReq.User.GetID(),
+		authReq.Resource.GetConfig().Name,
+		authReq.Resource.GetID(),
+		authReq.Action,
 	).First(roleAccess)
 	if roleAccess.ID != 0 {
 		return true
