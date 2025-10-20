@@ -3,11 +3,10 @@ package handlers
 import (
 	"fmt"
 	"log"
-	"net/http"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gsarmaonline/goiter/config"
+	"github.com/gsarmaonline/goiter/core/helpers/authorisation"
 	"github.com/gsarmaonline/goiter/core/middleware"
 	"github.com/gsarmaonline/goiter/core/models"
 	"gorm.io/gorm"
@@ -26,7 +25,7 @@ type (
 		Db            *gorm.DB
 		middleware    *middleware.Middleware
 		cfg           *config.Config
-		authorisation *models.Authorisation
+		authorisation *authorisation.Authorisation
 
 		OpenRouteGroup      *gin.RouterGroup
 		ProtectedRouteGroup *gin.RouterGroup
@@ -47,7 +46,7 @@ func NewHandler(router *gin.Engine, db *gorm.DB, cfg *config.Config) (handler *H
 	// Setup routes
 	handler.SetupRoutes()
 	// Setup authorisation
-	handler.authorisation = models.NewAuthorisation()
+	handler.authorisation = authorisation.NewAuthorisation(handler)
 	return
 }
 
@@ -82,7 +81,6 @@ func (h *Handler) setupAuthRoutes() {
 		// Initialize handlers
 		accountHandler := NewAccountHandler(h)
 		billingHandler := NewBillingHandler(h)
-		groupHandler := NewGroupHandler(h)
 
 		// Account routes
 		accountRoutes := h.ProtectedRouteGroup.Group("/account")
@@ -99,35 +97,10 @@ func (h *Handler) setupAuthRoutes() {
 			billingRoutes.GET("/subscriptions", billingHandler.GetSubscriptionStatus)
 		}
 
-		// Group routes
-		groupRoutes := h.ProtectedRouteGroup.Group("/groups")
-		{
-			groupRoutes.POST("", groupHandler.CreateGroup)
-			groupRoutes.GET("", groupHandler.ListGroups)
-			groupRoutes.GET("/:id", groupHandler.GetGroup)
-			groupRoutes.GET("/:id/ancestors", groupHandler.GetGroupAncestors)
-			groupRoutes.DELETE("/:id", groupHandler.DeleteGroup)
-			groupRoutes.POST("/:id/members", groupHandler.AddGroupMember)
-			groupRoutes.DELETE("/:id/members", groupHandler.RemoveGroupMember)
-		}
-
 		h.OpenRouteGroup.GET("/plans", h.GetPlans)
 		h.OpenRouteGroup.POST("/webhook", billingHandler.HandleWebhook)
 
 	}
-}
-
-// GetUserFromContext is a helper function to get the user from the context
-func (handler *Handler) GetUserFromContext(c *gin.Context) (user *models.User) {
-	var (
-		exists bool
-		cObj   interface{}
-	)
-	if cObj, exists = c.Get("user"); !exists {
-		panic("user not found in context")
-	}
-	user = cObj.(*models.User)
-	return
 }
 
 func (h *Handler) handlePing(c *gin.Context) {
@@ -146,118 +119,55 @@ func (h *Handler) handlePing(c *gin.Context) {
 	c.JSON(200, gin.H{"message": "pong"})
 }
 
-func (h *Handler) GetTableName(model models.UserOwnedModel) (tableName string) {
-	stmt := &gorm.Statement{DB: h.Db}
-	stmt.Parse(model)
-	return stmt.Schema.Table
+// GetUserFromContext is a helper function to get the user from the context
+func (handler *Handler) GetUserFromContext(c *gin.Context) (user *models.User) {
+	var (
+		exists bool
+		cObj   interface{}
+	)
+	if cObj, exists = c.Get("user"); !exists {
+		panic("user not found in context")
+	}
+	user = cObj.(*models.User)
+	return
 }
 
 func (h *Handler) UserScopedDB(c *gin.Context) (db *gorm.DB) {
-	user := h.GetUserFromContext(c)
-	db = h.Db.Where("user_id", user.ID)
+	db = h.authorisation.UserScopedDB(c, h.Db)
 	return
 }
 
-func (h *Handler) GetModelFromUrl(c *gin.Context, userOwnedModel models.UserOwnedModel, urlKeyName string) (err error) {
-	var (
-		modelID uint64
-	)
-	if modelID, err = strconv.ParseUint(c.Param(urlKeyName), 10, 32); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid project ID"})
-		return
-	}
-	if err = h.Db.First(&userOwnedModel, modelID).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Project not found"})
-		return
-	}
-	if err = h.FirstWithUser(c, userOwnedModel, h.Db.Where("id = ?", modelID)); err != nil {
+func (h *Handler) FirstWithUser(c *gin.Context, userOwnedModel models.UserOwnedModel) (err error) {
+	if err = h.UserScopedDB(c).First(userOwnedModel).Error; err != nil {
 		return
 	}
 	return
 }
 
-func (h *Handler) FirstWithUser(c *gin.Context, userOwnedModel models.UserOwnedModel, dbQuery *gorm.DB) (err error) {
-	user := h.GetUserFromContext(c)
-	err = dbQuery.First(&userOwnedModel).Error
-	if false == h.authorisation.CanAccessResource(
-		&models.AuthorisationRequest{
-			Db:       h.Db,
-			User:     user,
-			Resource: userOwnedModel,
-			Action:   models.ReadAction,
-			Scope:    &models.Scope{},
-		}) {
-		err = fmt.Errorf("unauthorized access to resource: %s", h.GetTableName(userOwnedModel))
+func (h *Handler) FindWithUser(c *gin.Context) (userOwnedModels []models.UserOwnedModel, err error) {
+	if err = h.UserScopedDB(c).Find(&userOwnedModels).Error; err != nil {
 		return
-	}
-	return
-}
-
-func (h *Handler) FindWithUser(c *gin.Context, userOwnedModel interface{},
-	query string) (userOwnedModels []models.UserOwnedModel, err error) {
-
-	user := h.GetUserFromContext(c)
-	err = h.Db.Model(userOwnedModel).Where(query).Find(&userOwnedModels).Error
-	for _, model := range userOwnedModels {
-		if false == h.authorisation.CanAccessResource(&models.AuthorisationRequest{
-			Db:       h.Db,
-			User:     user,
-			Resource: model.(models.UserOwnedModel),
-			Action:   models.ReadAction,
-			Scope:    &models.Scope{},
-		}) {
-			err = fmt.Errorf("unauthorized access to resource: %s", model.(models.UserOwnedModel).GetConfig().Name)
-			return
-		}
 	}
 	return
 }
 
 func (h *Handler) CreateWithUser(c *gin.Context, model models.UserOwnedModel) (err error) {
-	user := h.GetUserFromContext(c)
-	model.SetUserID(user.ID)
-	if false == h.authorisation.CanAccessResource(&models.AuthorisationRequest{
-		Db:       h.Db,
-		User:     user,
-		Resource: model,
-		Action:   models.CreateAction,
-		Scope:    &models.Scope{},
-	}) {
-		err = fmt.Errorf("unauthorized access to resource: %s", h.GetTableName(model))
+	h.authorisation.UpdateWithUser(c, model)
+	if err = h.Db.Create(model).Error; err != nil {
 		return
 	}
-	err = h.Db.Create(model).Error
 	return
 }
 
 func (h *Handler) UpdateWithUser(c *gin.Context, model models.UserOwnedModel, toUpdateWith interface{}) (err error) {
-	user := h.GetUserFromContext(c)
-	model.SetUserID(user.ID)
-	if false == h.authorisation.CanAccessResource(&models.AuthorisationRequest{
-		Db:       h.Db,
-		User:     user,
-		Resource: model,
-		Action:   models.UpdateAction,
-		Scope:    &models.Scope{},
-	}) {
-		err = fmt.Errorf("unauthorized access to resource: %s", h.GetTableName(model))
-		return
-	}
+	h.authorisation.UpdateWithUser(c, model)
 	err = h.Db.Model(model).Updates(toUpdateWith).Error
 	return
 }
 
 func (h *Handler) DeleteWithUser(c *gin.Context, model models.UserOwnedModel) (err error) {
-	user := h.GetUserFromContext(c)
-	model.SetUserID(user.ID)
-	if false == h.authorisation.CanAccessResource(&models.AuthorisationRequest{
-		Db:       h.Db,
-		User:     user,
-		Resource: model,
-		Action:   models.DeleteAction,
-		Scope:    &models.Scope{},
-	}) {
-		err = fmt.Errorf("unauthorized access to resource: %s", h.GetTableName(model))
+	if h.authorisation.CanAccessResource(c, model) == false {
+		err = fmt.Errorf("unauthorised to delete resource")
 		return
 	}
 	err = h.Db.Delete(model).Error

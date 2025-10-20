@@ -8,7 +8,7 @@ import (
 // handleGetProfile handles the profile read request
 func (h *Handler) handleGetProfile(c *gin.Context) {
 	var profile models.Profile
-	if err := h.FirstWithUser(c, &profile, h.UserScopedDB(c)); err != nil {
+	if err := h.FirstWithUser(c, &profile); err != nil {
 		c.JSON(404, gin.H{"error": "Profile not found"})
 		return
 	}
@@ -25,7 +25,7 @@ func (h *Handler) handleUpdateProfile(c *gin.Context) {
 		c.JSON(400, gin.H{"error": "Invalid request body"})
 		return
 	}
-	if err := h.FirstWithUser(c, profile, h.UserScopedDB(c)); err != nil {
+	if err := h.FirstWithUser(c, profile); err != nil {
 		c.JSON(404, gin.H{"error": "Profile not found"})
 		return
 	}

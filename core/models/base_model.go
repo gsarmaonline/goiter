@@ -4,7 +4,22 @@ import (
 	"time"
 )
 
+const (
+	// Action types
+	ReadAction   ActionT = "read"
+	CreateAction ActionT = "create"
+	UpdateAction ActionT = "update"
+	DeleteAction ActionT = "delete"
+
+	// Scope types
+	ProjectScopeType ScopeTypeT = "Project"
+	AccountScopeType ScopeTypeT = "Account"
+)
+
 type (
+	ScopeTypeT     string
+	ElementT       string
+	ActionT        string
 	UserOwnedModel interface {
 		GetID() uint
 		GetUserID() uint
