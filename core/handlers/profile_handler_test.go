@@ -25,9 +25,9 @@ func setupTestDB(t *testing.T) *gorm.DB {
 	require.NoError(t, err)
 
 	err = db.AutoMigrate(
-		&models.User{}, 
-		&models.Profile{}, 
-		&models.Account{}, 
+		&models.User{},
+		&models.Profile{},
+		&models.Account{},
 		&models.Plan{},
 		&models.Feature{},
 		&models.PlanFeature{},
@@ -50,14 +50,14 @@ func setupTestDB(t *testing.T) *gorm.DB {
 func setupTestHandler(t *testing.T) (*Handler, *gorm.DB) {
 	gin.SetMode(gin.TestMode)
 	db := setupTestDB(t)
-	
+
 	// Set required environment variables
 	os.Setenv("JWT_SECRET", "test-secret-key")
-	
+
 	cfg := &config.Config{Mode: config.ModeDev}
 	router := gin.New()
 	handler := NewHandler(router, db, cfg)
-	
+
 	return handler, db
 }
 
@@ -157,7 +157,7 @@ func TestProfileHandler(t *testing.T) {
 
 			// Assert error response
 			assert.Equal(t, 401, w.Code)
-			
+
 			var response map[string]interface{}
 			err := json.Unmarshal(w.Body.Bytes(), &response)
 			require.NoError(t, err)
@@ -167,7 +167,7 @@ func TestProfileHandler(t *testing.T) {
 		t.Run("Profile not found", func(t *testing.T) {
 			// Create user but delete the profile to simulate missing profile
 			user, token := createTestUser(t, db, "noprofile@example.com")
-			
+
 			// Delete the profile that was created by the user AfterCreate hook
 			err := db.Where("user_id = ?", user.ID).Delete(&models.Profile{}).Error
 			require.NoError(t, err)
@@ -177,7 +177,7 @@ func TestProfileHandler(t *testing.T) {
 
 			// Assert error response
 			assert.Equal(t, 404, w.Code)
-			
+
 			var response map[string]interface{}
 			err = json.Unmarshal(w.Body.Bytes(), &response)
 			require.NoError(t, err)
@@ -190,7 +190,7 @@ func TestProfileHandler(t *testing.T) {
 
 			// Assert error response
 			assert.Equal(t, 401, w.Code)
-			
+
 			var response map[string]interface{}
 			err := json.Unmarshal(w.Body.Bytes(), &response)
 			require.NoError(t, err)
@@ -238,7 +238,7 @@ func TestProfileHandler(t *testing.T) {
 
 			// Assert error response
 			assert.Equal(t, 401, w.Code)
-			
+
 			var response map[string]interface{}
 			err := json.Unmarshal(w.Body.Bytes(), &response)
 			require.NoError(t, err)
@@ -248,7 +248,7 @@ func TestProfileHandler(t *testing.T) {
 		t.Run("Profile not found", func(t *testing.T) {
 			// Create user but delete the profile
 			user, token := createTestUser(t, db, "noprofileupdate@example.com")
-			
+
 			// Delete the profile that was created by the user AfterCreate hook
 			err := db.Where("user_id = ?", user.ID).Delete(&models.Profile{}).Error
 			require.NoError(t, err)
@@ -262,7 +262,7 @@ func TestProfileHandler(t *testing.T) {
 
 			// Assert error response
 			assert.Equal(t, 404, w.Code)
-			
+
 			var response map[string]interface{}
 			err = json.Unmarshal(w.Body.Bytes(), &response)
 			require.NoError(t, err)
@@ -277,7 +277,7 @@ func TestProfileHandler(t *testing.T) {
 			var profile models.Profile
 			err := db.Where("user_id = ?", user.ID).First(&profile).Error
 			require.NoError(t, err)
-			
+
 			profile.Address = "Original address"
 			profile.City = "Original city"
 			profile.CompanyName = "Original company"
@@ -301,7 +301,7 @@ func TestProfileHandler(t *testing.T) {
 			require.NoError(t, err)
 
 			assert.Equal(t, "Only address updated", updatedProfile.Address)
-			assert.Equal(t, "Original city", updatedProfile.City) // Should remain unchanged
+			assert.Equal(t, "Original city", updatedProfile.City)           // Should remain unchanged
 			assert.Equal(t, "Original company", updatedProfile.CompanyName) // Should remain unchanged
 		})
 	})
@@ -332,12 +332,12 @@ func TestProfileHandler_Authorization(t *testing.T) {
 		// User 1 should get their own profile
 		w1 := makeAuthenticatedRequest(t, handler, "GET", "/profile", nil, token1)
 		assert.Equal(t, 200, w1.Code)
-		
+
 		// Verify user1 gets their own profile data
 		var response1 map[string]interface{}
 		err = json.Unmarshal(w1.Body.Bytes(), &response1)
 		require.NoError(t, err)
-		
+
 		if data1, hasData := response1["data"]; hasData {
 			profileData1 := data1.(map[string]interface{})
 			assert.Equal(t, float64(profile1.ID), profileData1["id"])
@@ -348,11 +348,11 @@ func TestProfileHandler_Authorization(t *testing.T) {
 		w2 := makeAuthenticatedRequest(t, handler, "GET", "/profile", nil, token2)
 		assert.Equal(t, 200, w2.Code)
 
-		// Verify user2 gets their own profile data  
+		// Verify user2 gets their own profile data
 		var response2 map[string]interface{}
 		err = json.Unmarshal(w2.Body.Bytes(), &response2)
 		require.NoError(t, err)
-		
+
 		if data2, hasData := response2["data"]; hasData {
 			profileData2 := data2.(map[string]interface{})
 			assert.Equal(t, float64(profile2.ID), profileData2["id"])

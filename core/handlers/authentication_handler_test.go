@@ -20,11 +20,11 @@ import (
 // assertErrorResponse safely checks for error responses
 func assertErrorResponse(t *testing.T, w *httptest.ResponseRecorder, expectedStatus int, expectedErrorMessage string) {
 	assert.Equal(t, expectedStatus, w.Code)
-	
+
 	var response map[string]interface{}
 	err := json.Unmarshal(w.Body.Bytes(), &response)
 	require.NoError(t, err)
-	
+
 	errorMsg, exists := response["error"]
 	require.True(t, exists, "Response should contain an error field")
 	assert.Contains(t, errorMsg.(string), expectedErrorMessage)
@@ -40,7 +40,7 @@ func TestAuthenticationHandler(t *testing.T) {
 			}
 
 			w := makeAuthenticatedRequest(t, handler, "POST", "/auth/shortcircuitlogin", requestBody, "")
-			
+
 			assert.Equal(t, 200, w.Code)
 
 			var response map[string]interface{}
@@ -86,7 +86,7 @@ func TestAuthenticationHandler(t *testing.T) {
 			}
 
 			w := makeAuthenticatedRequest(t, handler, "POST", "/auth/shortcircuitlogin", requestBody, "")
-			
+
 			assert.Equal(t, 200, w.Code)
 
 			var response map[string]interface{}
@@ -113,14 +113,14 @@ func TestAuthenticationHandler(t *testing.T) {
 			}
 
 			w := makeAuthenticatedRequest(t, handler, "POST", "/auth/shortcircuitlogin", requestBody, "")
-			
+
 			// The handler doesn't validate empty email, so it will try to process it
 			// This might succeed or fail depending on database constraints
 			// Let's check what actually happens
 			var response map[string]interface{}
 			err := json.Unmarshal(w.Body.Bytes(), &response)
 			require.NoError(t, err)
-			
+
 			// Either it succeeds with a token or fails with an error
 			if w.Code == 200 {
 				assert.Contains(t, response, "token")
@@ -151,10 +151,10 @@ func TestAuthenticationHandler(t *testing.T) {
 			os.Setenv("GOOGLE_CALLBACK_URL", "http://localhost:8080/auth/google/callback")
 
 			w := makeAuthenticatedRequest(t, handler, "GET", "/auth/google", nil, "")
-			
+
 			// Should redirect to Google OAuth URL
 			assert.Equal(t, 307, w.Code) // Temporary redirect
-			
+
 			location := w.Header().Get("Location")
 			assert.Contains(t, location, "accounts.google.com/o/oauth2/v2/auth")
 			assert.Contains(t, location, "client_id=test-client-id")
@@ -189,7 +189,7 @@ func TestAuthenticationHandler(t *testing.T) {
 			user, token := createTestUser(t, db, "getuser@example.com")
 
 			w := makeAuthenticatedRequest(t, handler, "GET", "/me", nil, token)
-			
+
 			assert.Equal(t, 200, w.Code)
 
 			var response map[string]interface{}
@@ -219,7 +219,7 @@ func TestAuthenticationHandler(t *testing.T) {
 		t.Run("Expired Token", func(t *testing.T) {
 			// Create an expired token
 			user, _ := createTestUser(t, db, "expiredtoken@example.com")
-			
+
 			expiredToken := jwt.NewWithClaims(jwt.SigningMethodHS256,
 				jwt.MapClaims{
 					"email": user.Email,
@@ -255,7 +255,7 @@ func TestAuthenticationHandler(t *testing.T) {
 			_, token := createTestUser(t, db, "logout@example.com")
 
 			w := makeAuthenticatedRequest(t, handler, "POST", "/logout", nil, token)
-			
+
 			assert.Equal(t, 200, w.Code)
 
 			var response map[string]interface{}
@@ -276,7 +276,7 @@ func TestJWTCreation(t *testing.T) {
 
 	t.Run("Valid JWT Creation", func(t *testing.T) {
 		email := "test@example.com"
-		
+
 		// Use reflection to access the private createJWT method
 		// Note: In a real scenario, you might want to expose this as a testable function
 		token, err := handler.createJWT(email)
@@ -293,7 +293,7 @@ func TestJWTCreation(t *testing.T) {
 		claims, ok := parsedToken.Claims.(jwt.MapClaims)
 		require.True(t, ok)
 		assert.Equal(t, email, claims["email"])
-		
+
 		// Check expiration is in the future
 		exp := claims["exp"].(float64)
 		assert.Greater(t, exp, float64(time.Now().Unix()))
